@@ -78,7 +78,7 @@ def find_device_info(name):
 
 # ── Scan ─────────────────────────────────────────────────────────────
 
-async def scan():
+async def scan(save=False):
     banner()
     print(f'  {DIM}Scanning for 10 seconds...{RESET}')
     print()
@@ -96,11 +96,40 @@ async def scan():
 
     print(f'  {GREEN}Found {len(found)} device(s):{RESET}')
     print()
-    print(f'  {DIM}{"Name":<16} {"Address":<40}{RESET}')
-    print(f'  {DIM}{"─" * 16} {"─" * 40}{RESET}')
-    for d in found:
-        print(f'  {d.name:<16} {d.address:<40}')
+    print(f'  {DIM}{"#":<4} {"Name":<16} {"Address":<40}{RESET}')
+    print(f'  {DIM}{"─" * 4} {"─" * 16} {"─" * 40}{RESET}')
+    for i, d in enumerate(found):
+        print(f'  {i + 1:<4} {d.name:<16} {d.address:<40}')
     print()
+
+    if save:
+        # Load existing devices.json or start fresh
+        existing = {}
+        if DEVICES_FILE.exists():
+            try:
+                data = json.loads(DEVICES_FILE.read_text())
+                for dev in data.get('devices', []):
+                    existing[dev.get('address', dev.get('id', ''))] = dev
+            except Exception:
+                pass
+
+        # Merge found devices
+        for i, d in enumerate(found):
+            if d.address not in existing:
+                existing[d.address] = {
+                    'name': f'Clock {len(existing) + 1}',
+                    'address': d.address,
+                    'ble_name': d.name,
+                    'location': ''
+                }
+            else:
+                # Update BLE name if missing
+                existing[d.address].setdefault('ble_name', d.name)
+
+        output = {'devices': list(existing.values())}
+        DEVICES_FILE.write_text(json.dumps(output, indent=2) + '\n')
+        print(f'  {GREEN}Saved {len(output["devices"])} device(s) to {DEVICES_FILE.name}{RESET}')
+        print()
 
 
 # ── Sync ─────────────────────────────────────────────────────────────
@@ -213,6 +242,6 @@ async def sync_all():
 
 if __name__ == '__main__':
     if '--scan' in sys.argv:
-        asyncio.run(scan())
+        asyncio.run(scan(save='--save' in sys.argv))
     else:
         asyncio.run(sync_all())

@@ -50,69 +50,6 @@
       </div>
     </div>
 
-    <!-- CLI tool + Known devices side by side -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-      <!-- CLI tool -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body p-5 gap-3">
-          <h2 class="card-title text-sm">CLI tool (Alternative)</h2>
-          <p class="text-sm opacity-60">Sync all clocks from terminal. Auto-discovers devices, syncs time, reads sensors.</p>
-          <div class="text-sm flex flex-col gap-2">
-            <div>
-              <p class="opacity-40 mb-1">Install</p>
-              <div class="relative group">
-                <code class="block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs pr-16">pip3 install bleak</code>
-                <button class="copy-btn btn btn-ghost btn-xs absolute right-1 top-1 opacity-0 group-hover:opacity-100" data-text="pip3 install bleak">Copy</button>
-              </div>
-            </div>
-            <div>
-              <p class="opacity-40 mb-1">Usage</p>
-              <div class="relative group">
-                <code class="block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs pr-16">python3 sync.py</code>
-                <button class="copy-btn btn btn-ghost btn-xs absolute right-1 top-1 opacity-0 group-hover:opacity-100" data-text="python3 sync.py">Copy</button>
-              </div>
-            </div>
-            <div>
-              <p class="opacity-40 mb-1">Scan only</p>
-              <div class="relative group">
-                <code class="block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs pr-16">python3 sync.py --scan</code>
-                <button class="copy-btn btn btn-ghost btn-xs absolute right-1 top-1 opacity-0 group-hover:opacity-100" data-text="python3 sync.py --scan">Copy</button>
-              </div>
-            </div>
-          </div>
-          <a href="sync.py" download class="btn btn-secondary btn-sm btn-block">Download sync.py</a>
-        </div>
-      </div>
-
-      <!-- Known devices -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body p-5 gap-3">
-          <div class="flex items-center gap-2">
-            <h2 class="card-title text-sm">Known devices</h2>
-            <div id="device-count" class="badge badge-accent badge-sm hidden"></div>
-          </div>
-          <div id="devices-loading" class="flex flex-col gap-2 py-2">
-            <div class="skeleton h-4 w-full"></div>
-            <div class="skeleton h-4 w-3/4"></div>
-          </div>
-          <div id="devices-empty" class="text-sm opacity-40 py-4 text-center hidden">No devices yet.</div>
-          <div id="devices-table-wrap" class="hidden">
-            <table class="table table-sm w-full">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Location</th>
-                </tr>
-              </thead>
-              <tbody id="devices-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
     <!-- Sync log -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body p-5 gap-3">
@@ -121,12 +58,15 @@
           <button id="btn-clear-log" class="btn btn-ghost btn-xs opacity-40 hover:opacity-100 hidden">Clear</button>
         </div>
         <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet.</div>
-        <div id="log-table-wrap" class="overflow-y-auto max-h-64 hidden">
+        <div id="log-table-wrap" class="overflow-y-auto max-h-80 hidden">
           <table class="table table-sm w-full">
             <thead class="sticky top-0 bg-base-100 z-10">
               <tr>
                 <th>Device</th>
+                <th>ID</th>
                 <th>Status</th>
+                <th>Temp</th>
+                <th>Humidity</th>
                 <th>Time</th>
               </tr>
             </thead>
@@ -136,9 +76,32 @@
       </div>
     </div>
 
+    <!-- CLI tool (Alternative) -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body p-5 gap-3">
+        <h2 class="card-title text-sm">CLI tool (Alternative)</h2>
+        <p class="text-sm opacity-60">Sync all clocks from terminal. Auto-discovers devices, syncs time, reads sensors.</p>
+        <div class="text-sm flex flex-col gap-2">
+          <div>
+            <p class="opacity-40 mb-1">Install</p>
+            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors">pip3 install bleak</code>
+          </div>
+          <div>
+            <p class="opacity-40 mb-1">Sync all clocks</p>
+            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors">python3 sync.py</code>
+          </div>
+          <div>
+            <p class="opacity-40 mb-1">Scan and save to devices.json</p>
+            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors">python3 sync.py --scan --save</code>
+          </div>
+        </div>
+        <a href="sync.py" download class="btn btn-secondary btn-sm btn-block">Download sync.py</a>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 13:44 IST
+      Last updated: 2026-03-31 13:49 IST
     </footer>
 
   </div>
@@ -146,7 +109,6 @@
 <script>
 var TIME_SERVICE  = 'ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6';
 var TIME_CHAR     = 'ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6';
-var UNIT_CHAR     = 'ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6';
 var TEMP_HUM_CHAR = 'ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6';
 
 var hrsEl = document.getElementById('hrs');
@@ -159,11 +121,6 @@ var btnAdd = document.getElementById('btn-add');
 var statusAlert = document.getElementById('status-alert');
 var statusText = document.getElementById('status-text');
 var toastWrap = document.getElementById('toast-wrap');
-var devicesBody = document.getElementById('devices-body');
-var devicesEmpty = document.getElementById('devices-empty');
-var devicesLoading = document.getElementById('devices-loading');
-var devicesTableWrap = document.getElementById('devices-table-wrap');
-var deviceCount = document.getElementById('device-count');
 var logBody = document.getElementById('log-body');
 var logEmpty = document.getElementById('log-empty');
 var logTableWrap = document.getElementById('log-table-wrap');
@@ -231,102 +188,6 @@ function setSyncing(active) {
   syncAllSpinner.classList.toggle('hidden', !active);
 }
 
-/* ---- Device registry ---- */
-
-var devicesRegistry = {};
-
-/* Look up the friendly name for a device ID from the registry.
-   JSON is the authority — always prefer the registry name. */
-function resolveDeviceName(bleDeviceName, id) {
-  /* Try direct ID lookup */
-  if (id && devicesRegistry[id] && devicesRegistry[id].name) {
-    return devicesRegistry[id].name;
-  }
-  /* Search all entries in case ID format differs */
-  var keys = Object.keys(devicesRegistry);
-  for (var i = 0; i < keys.length; i++) {
-    var dev = devicesRegistry[keys[i]];
-    if (id && dev.id === id) return dev.name || bleDeviceName || id;
-  }
-  return bleDeviceName || 'Unknown device';
-}
-
-function loadDevicesJson() {
-  return fetch('devices.json')
-    .then(function (res) { return res.json(); })
-    .then(function (data) {
-      var list = data.devices || [];
-      for (var i = 0; i < list.length; i++) {
-        var dev = list[i];
-        var key = dev.id || dev.name;
-        if (!devicesRegistry[key]) {
-          devicesRegistry[key] = {
-            name: dev.name || '',
-            id: dev.id || '',
-            location: dev.location || ''
-          };
-        }
-      }
-      devicesLoading.classList.add('hidden');
-      renderDevicesTable();
-    })
-    .catch(function () {
-      devicesLoading.classList.add('hidden');
-      devicesEmpty.classList.remove('hidden');
-    });
-}
-
-function ensureDeviceInRegistry(id) {
-  if (!id) return;
-  if (!devicesRegistry[id]) {
-    devicesRegistry[id] = { name: '', id: id, location: '' };
-    renderDevicesTable();
-  }
-}
-
-function renderDevicesTable() {
-  var keys = Object.keys(devicesRegistry);
-  if (keys.length === 0) {
-    devicesEmpty.classList.remove('hidden');
-    devicesTableWrap.classList.add('hidden');
-    deviceCount.classList.add('hidden');
-    return;
-  }
-  devicesEmpty.classList.add('hidden');
-  devicesTableWrap.classList.remove('hidden');
-  deviceCount.textContent = keys.length;
-  deviceCount.classList.remove('hidden');
-  devicesBody.innerHTML = '';
-
-  /* Sort by name numerically: Clock 1, Clock 2, ... Unnamed last */
-  keys.sort(function (a, b) {
-    var na = devicesRegistry[a].name || '';
-    var nb = devicesRegistry[b].name || '';
-    var numA = parseInt(na.replace(/\D/g, ''), 10) || 9999;
-    var numB = parseInt(nb.replace(/\D/g, ''), 10) || 9999;
-    return numA - numB;
-  });
-
-  for (var i = 0; i < keys.length; i++) {
-    var dev = devicesRegistry[keys[i]];
-    var tr = document.createElement('tr');
-
-    var tdName = document.createElement('td');
-    tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (dev.name || 'Unnamed') + '</span>';
-
-    var tdLocation = document.createElement('td');
-    if (dev.location) {
-      tdLocation.textContent = dev.location;
-    } else {
-      tdLocation.innerHTML = '<span class="opacity-20">\u2014</span>';
-    }
-
-    tr.appendChild(tdName);
-    tr.appendChild(tdLocation);
-    devicesBody.appendChild(tr);
-  }
-}
-
 /* ---- Sync log ---- */
 
 function getHistory() {
@@ -345,12 +206,17 @@ function showLogTable() {
   btnClearLog.classList.remove('hidden');
 }
 
-function addLogRow(displayName, status, time) {
+/* Add a row to the sync log. Temp/humidity are optional. */
+function addLogRow(name, id, status, temp, humidity, time) {
   showLogTable();
   var tr = document.createElement('tr');
 
   var tdName = document.createElement('td');
-  tdName.innerHTML = '<span class="badge badge-info badge-sm">' + displayName + '</span>';
+  tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (name || '?') + '</span>';
+
+  var tdId = document.createElement('td');
+  tdId.className = 'font-mono text-xs opacity-40';
+  tdId.textContent = id || '-';
 
   var tdStatus = document.createElement('td');
   if (status === 'error') {
@@ -360,28 +226,63 @@ function addLogRow(displayName, status, time) {
     tdStatus.innerHTML = '<span class="badge badge-success badge-sm">synced</span>';
   }
 
+  var tdTemp = document.createElement('td');
+  tdTemp.className = 'font-mono';
+  if (temp !== null && temp !== undefined) {
+    tdTemp.innerHTML = '<span class="text-warning">' + temp.toFixed(1) + ' °C</span>';
+  } else {
+    tdTemp.innerHTML = '<span class="opacity-20">\u2014</span>';
+  }
+
+  var tdHum = document.createElement('td');
+  tdHum.className = 'font-mono';
+  if (humidity !== null && humidity !== undefined) {
+    tdHum.innerHTML = '<span class="text-accent">' + humidity + ' %</span>';
+  } else {
+    tdHum.innerHTML = '<span class="opacity-20">\u2014</span>';
+  }
+
   var tdTime = document.createElement('td');
   tdTime.className = 'font-mono text-sm whitespace-nowrap';
   tdTime.textContent = typeof time === 'string' ? formatTime(new Date(time)) : formatTime(time);
 
   tr.appendChild(tdName);
+  tr.appendChild(tdId);
   tr.appendChild(tdStatus);
+  tr.appendChild(tdTemp);
+  tr.appendChild(tdHum);
   tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
 }
 
+/* Log a sync event (time written to device) */
 function logSync(bleName, id, status) {
   var now = new Date();
-  addLogRow(resolveDeviceName(bleName, id), status, now);
-  saveToHistory({ id: id, action: status || 'synced', time: now.toISOString() });
-  if (id && status !== 'error') {
-    ensureDeviceInRegistry(id);
-  }
+  addLogRow(bleName, id, status, null, null, now);
+  saveToHistory({ name: bleName, id: id, action: status || 'synced', time: now.toISOString() });
 }
 
+/* Update the most recent log row for this device with sensor data */
 function logReading(bleName, id, tempC, humidity) {
-  if (id) {
-    ensureDeviceInRegistry(id);
+  /* Find the most recent row for this device and update temp/humidity */
+  var rows = logBody.querySelectorAll('tr');
+  for (var i = 0; i < rows.length; i++) {
+    var cells = rows[i].querySelectorAll('td');
+    if (cells[1] && cells[1].textContent === id) {
+      cells[3].innerHTML = '<span class="text-warning">' + tempC.toFixed(1) + ' °C</span>';
+      cells[4].innerHTML = '<span class="text-accent">' + humidity + ' %</span>';
+      /* Also update stored history */
+      var history = getHistory();
+      for (var j = history.length - 1; j >= 0; j--) {
+        if (history[j].id === id && !history[j].temp) {
+          history[j].temp = tempC;
+          history[j].humidity = humidity;
+          localStorage.setItem('lywsd02_history', JSON.stringify(history));
+          break;
+        }
+      }
+      return;
+    }
   }
 }
 
@@ -451,7 +352,6 @@ function syncDevice(device) {
     });
 }
 
-/* Wait for a device to advertise, then sync it. Timeout after 10s. */
 function waitAndSync(device) {
   return new Promise(function (resolve) {
     var done = false;
@@ -483,21 +383,18 @@ function loadHistory() {
   for (var i = 0; i < history.length; i++) {
     var entry = history[i];
     if (entry.action !== undefined) {
-      addLogRow(resolveDeviceName('', entry.id), entry.action, entry.time);
+      addLogRow(entry.name || '?', entry.id, entry.action, entry.temp, entry.humidity, entry.time);
     }
   }
 }
-
-/* Load devices.json first, then render history so names resolve correctly */
-loadDevicesJson().then(loadHistory);
+loadHistory();
 
 /* ---- Buttons ---- */
 
 btnAdd.addEventListener('click', function () {
   navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
     .then(function (device) {
-      ensureDeviceInRegistry(device.id);
-      setStatus('Syncing ' + resolveDeviceName(device.name, device.id) + '\u2026', 'info');
+      setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
       return syncDevice(device);
     })
     .then(function () { setStatus('Done', 'success'); })
@@ -515,77 +412,38 @@ btnSyncAll.addEventListener('click', function () {
 
   navigator.bluetooth.getDevices()
     .then(function (pairedDevices) {
-      /* Build a set of paired device IDs */
-      var pairedIds = {};
-      for (var i = 0; i < pairedDevices.length; i++) {
-        pairedIds[pairedDevices[i].id] = pairedDevices[i];
-      }
-
-      /* Find which devices from the registry are not yet paired */
-      var unpaired = [];
-      var keys = Object.keys(devicesRegistry);
-      for (var j = 0; j < keys.length; j++) {
-        var dev = devicesRegistry[keys[j]];
-        if (dev.id && !pairedIds[dev.id]) {
-          unpaired.push(dev);
-        }
-      }
-
-      var total = pairedDevices.length + unpaired.length;
-      var done = 0;
-
-      if (total === 0) {
-        setStatus('No devices \u2014 add one first', 'error');
+      if (pairedDevices.length === 0) {
+        setStatus('No paired devices \u2014 add one first', 'error');
         setSyncing(false);
         return;
       }
 
+      var total = pairedDevices.length;
+      var done = 0;
       setStatus('Syncing 0/' + total + '\u2026', 'info');
 
-      /* Phase 1: sync all already-paired devices in parallel */
-      var pairedPromises = pairedDevices.map(function (device) {
+      var promises = pairedDevices.map(function (device) {
         return waitAndSync(device).then(function () {
           done++;
           setStatus('Syncing ' + done + '/' + total + '\u2026', 'info');
         });
       });
 
-      return Promise.all(pairedPromises).then(function () {
-        if (unpaired.length === 0) return;
-
-        /* Phase 2: prompt picker for each unpaired device, one at a time */
-        var chain = Promise.resolve();
-        unpaired.forEach(function (dev) {
-          chain = chain.then(function () {
-            setStatus('Pair "' + (dev.name || 'device') + '" \u2014 select it from the picker', 'info');
-            return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
-              .then(function (device) {
-                return syncDevice(device).then(function () {
-                  done++;
-                  setStatus('Syncing ' + done + '/' + total + '\u2026', 'info');
-                });
-              })
-              .catch(function () {
-                /* User cancelled picker, skip this device */
-                done++;
-              });
-          });
-        });
-        return chain;
-      });
+      return Promise.all(promises);
     })
     .then(function () { setStatus('All done', 'success'); setSyncing(false); })
     .catch(function (error) { setStatus(friendlyError(error), 'error'); setSyncing(false); });
 });
 
-/* ---- Copy buttons ---- */
-document.querySelectorAll('.copy-btn').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    navigator.clipboard.writeText(this.dataset.text);
-    this.textContent = 'Copied';
+/* ---- Click to copy ---- */
+document.querySelectorAll('.copyable').forEach(function (el) {
+  el.addEventListener('click', function () {
+    navigator.clipboard.writeText(this.textContent);
+    var original = this.textContent;
+    this.textContent = 'Copied!';
     this.classList.add('text-success');
-    var el = this;
-    setTimeout(function () { el.textContent = 'Copy'; el.classList.remove('text-success'); }, 1500);
+    var self = this;
+    setTimeout(function () { self.textContent = original; self.classList.remove('text-success'); }, 1000);
   });
 });
 </script>
