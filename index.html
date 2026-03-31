@@ -107,7 +107,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 12:58 IST
+      Last updated: 2026-03-31 13:01 IST
     </footer>
 
   </div>
@@ -268,13 +268,13 @@ function renderDevicesTable() {
   deviceCount.classList.remove('hidden');
   devicesBody.innerHTML = '';
 
-  /* Sort: synced devices first, then by name */
+  /* Sort by name numerically: Clock 1, Clock 2, ... Unnamed last */
   keys.sort(function (a, b) {
-    var da = devicesRegistry[a];
-    var db = devicesRegistry[b];
-    if (da.lastSynced && !db.lastSynced) return -1;
-    if (!da.lastSynced && db.lastSynced) return 1;
-    return (da.name || '').localeCompare(db.name || '');
+    var na = devicesRegistry[a].name || '';
+    var nb = devicesRegistry[b].name || '';
+    var numA = parseInt(na.replace(/\D/g, ''), 10) || 9999;
+    var numB = parseInt(nb.replace(/\D/g, ''), 10) || 9999;
+    return numA - numB;
   });
 
   for (var i = 0; i < keys.length; i++) {
