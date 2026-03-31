@@ -53,18 +53,9 @@ pip3 install bleak
 curl -sL https://raw.githubusercontent.com/stefan-bc/Xiaomi-LYWSD02-Clock-sync/main/sync.py | python3
 ```
 
-This downloads the latest script from GitHub and runs it. Output:
+This downloads the latest script from GitHub and runs it.
 
-```
-  LYWSD02 Sync  14:30
-
-  Scanning...
-  ✓ LYWSD02MMC  21.6°C  53%
-  ✓ LYWSD02MMC  21.2°C  59%
-  ✗ LYWSD02MMC
-
-  2/3  (1 failed)
-```
+![CLI tool](4.png)
 
 ### Scan only (list nearby clocks)
 
