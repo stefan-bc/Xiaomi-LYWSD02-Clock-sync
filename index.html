@@ -27,19 +27,19 @@
       </div>
       <div class="navbar-center">
         <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1 font-mono text-3xl tabular-nums">
+          <div class="flex items-center gap-1 font-mono text-3xl tabular-nums text-primary">
             <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
             <span class="countdown"><span id="min" style="--value:0;"></span></span>
           </div>
-          <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
+          <div class="badge badge-primary badge-outline badge-sm font-mono" id="tz-label"></div>
         </div>
       </div>
       <div class="navbar-end gap-2">
-        <button id="btn-sync-all" class="btn btn-primary btn-sm">
+        <button id="btn-sync-all" class="btn btn-primary btn-sm gap-2">
           <span id="sync-all-label">Sync all</span>
           <span id="sync-all-spinner" class="loading loading-spinner loading-md hidden"></span>
         </button>
-        <button id="btn-add" class="btn btn-ghost btn-sm">Add device</button>
+        <button id="btn-add" class="btn btn-secondary btn-outline btn-sm">Add device</button>
       </div>
     </div>
 
@@ -51,8 +51,10 @@
     <!-- Known devices -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body p-5 gap-3">
-        <h2 class="card-title text-sm">Known devices</h2>
-        <!-- Loading skeleton shown while fetching devices.json -->
+        <div class="flex items-center gap-2">
+          <h2 class="card-title text-sm">Known devices</h2>
+          <div id="device-count" class="badge badge-accent badge-sm hidden"></div>
+        </div>
         <div id="devices-loading" class="flex flex-col gap-2 py-2">
           <div class="skeleton h-4 w-full"></div>
           <div class="skeleton h-4 w-3/4"></div>
@@ -60,8 +62,8 @@
         </div>
         <div id="devices-empty" class="text-sm opacity-40 py-4 text-center hidden">No devices remembered yet. Click "Add device" to pair one.</div>
         <div id="devices-table-wrap" class="overflow-x-auto hidden">
-          <table class="table table-sm table-zebra w-full">
-            <thead class="sticky top-0 bg-base-100 z-10">
+          <table class="table table-sm w-full">
+            <thead>
               <tr>
                 <th>Name</th>
                 <th>Location</th>
@@ -83,7 +85,7 @@
         <h2 class="card-title text-sm">Sync log</h2>
         <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet.</div>
         <div id="log-table-wrap" class="overflow-y-auto max-h-64 hidden">
-          <table class="table table-sm table-zebra w-full">
+          <table class="table table-sm w-full">
             <thead class="sticky top-0 bg-base-100 z-10">
               <tr>
                 <th>Name</th>
@@ -100,7 +102,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 12:00 IST
+      Last updated: 2026-03-31 11:59 IST
     </footer>
 
   </div>
@@ -124,6 +126,7 @@ var devicesBody = document.getElementById('devices-body');
 var devicesEmpty = document.getElementById('devices-empty');
 var devicesLoading = document.getElementById('devices-loading');
 var devicesTableWrap = document.getElementById('devices-table-wrap');
+var deviceCount = document.getElementById('device-count');
 var logBody = document.getElementById('log-body');
 var logEmpty = document.getElementById('log-empty');
 var logTableWrap = document.getElementById('log-table-wrap');
@@ -174,14 +177,13 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
-/* Show/hide sync button loading state */
 function setSyncing(active) {
   btnSyncAll.disabled = active;
   syncAllLabel.classList.toggle('hidden', active);
   syncAllSpinner.classList.toggle('hidden', !active);
 }
 
-/* ---- Known devices (loaded from devices.json, runtime state in memory) ---- */
+/* ---- Known devices ---- */
 
 var devicesRegistry = {};
 
@@ -232,10 +234,13 @@ function renderDevicesTable() {
   if (keys.length === 0) {
     devicesEmpty.classList.remove('hidden');
     devicesTableWrap.classList.add('hidden');
+    deviceCount.classList.add('hidden');
     return;
   }
   devicesEmpty.classList.add('hidden');
   devicesTableWrap.classList.remove('hidden');
+  deviceCount.textContent = keys.length;
+  deviceCount.classList.remove('hidden');
   devicesBody.innerHTML = '';
 
   for (var i = 0; i < keys.length; i++) {
@@ -243,26 +248,38 @@ function renderDevicesTable() {
     var tr = document.createElement('tr');
 
     var tdName = document.createElement('td');
-    tdName.textContent = dev.name || '-';
+    tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (dev.name || '-') + '</span>';
 
     var tdLocation = document.createElement('td');
     tdLocation.textContent = dev.location || '-';
 
     var tdId = document.createElement('td');
-    tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem]';
+    tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem] opacity-60';
     tdId.textContent = dev.id || '-';
 
     var tdSynced = document.createElement('td');
     tdSynced.className = 'font-mono text-sm whitespace-nowrap';
-    tdSynced.textContent = dev.lastSynced ? formatTime(new Date(dev.lastSynced)) : '-';
+    if (dev.lastSynced) {
+      tdSynced.innerHTML = '<span class="text-success">' + formatTime(new Date(dev.lastSynced)) + '</span>';
+    } else {
+      tdSynced.innerHTML = '<span class="opacity-30">never</span>';
+    }
 
     var tdTemp = document.createElement('td');
     tdTemp.className = 'font-mono';
-    tdTemp.textContent = dev.lastTemp !== null ? dev.lastTemp.toFixed(1) + ' °C' : '-';
+    if (dev.lastTemp !== null) {
+      tdTemp.innerHTML = '<span class="text-warning">' + dev.lastTemp.toFixed(1) + ' °C</span>';
+    } else {
+      tdTemp.innerHTML = '<span class="opacity-30">-</span>';
+    }
 
     var tdHum = document.createElement('td');
     tdHum.className = 'font-mono';
-    tdHum.textContent = dev.lastHumidity !== null ? dev.lastHumidity + ' %' : '-';
+    if (dev.lastHumidity !== null) {
+      tdHum.innerHTML = '<span class="text-accent">' + dev.lastHumidity + ' %</span>';
+    } else {
+      tdHum.innerHTML = '<span class="opacity-30">-</span>';
+    }
 
     tr.appendChild(tdName);
     tr.appendChild(tdLocation);
@@ -274,7 +291,7 @@ function renderDevicesTable() {
   }
 }
 
-/* ---- Sync log (localStorage) ---- */
+/* ---- Sync log ---- */
 
 function getHistory() {
   return JSON.parse(localStorage.getItem('lywsd02_history') || '[]');
@@ -296,18 +313,18 @@ function addLogRow(name, id, status, time) {
   var tr = document.createElement('tr');
 
   var tdName = document.createElement('td');
-  tdName.textContent = name || '-';
+  tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (name || '-') + '</span>';
 
   var tdId = document.createElement('td');
-  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem]';
+  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem] opacity-60';
   tdId.textContent = id || '-';
 
   var tdStatus = document.createElement('td');
   if (status === 'error') {
-    tr.className = 'opacity-50';
-    tdStatus.innerHTML = '<span class="badge badge-error badge-sm">failed</span>';
+    tr.className = 'opacity-40';
+    tdStatus.innerHTML = '<span class="badge badge-error badge-sm gap-1">failed</span>';
   } else {
-    tdStatus.innerHTML = '<span class="badge badge-success badge-sm">synced</span>';
+    tdStatus.innerHTML = '<span class="badge badge-success badge-sm gap-1">synced</span>';
   }
 
   var tdTime = document.createElement('td');
@@ -336,7 +353,7 @@ function logReading(name, id, tempC, humidity) {
   }
 }
 
-/* ---- BLE operations ---- */
+/* ---- BLE ---- */
 
 function readTempHumidity(service, name, id) {
   return service.getCharacteristic(TEMP_HUM_CHAR)
@@ -393,7 +410,7 @@ function syncDevice(device) {
     });
 }
 
-/* ---- Load on page start ---- */
+/* ---- Init ---- */
 
 function loadHistory() {
   var history = getHistory();
@@ -408,7 +425,7 @@ function loadHistory() {
 loadDevicesJson();
 loadHistory();
 
-/* ---- Button handlers ---- */
+/* ---- Buttons ---- */
 
 btnAdd.addEventListener('click', function () {
   navigator.bluetooth.requestDevice({
