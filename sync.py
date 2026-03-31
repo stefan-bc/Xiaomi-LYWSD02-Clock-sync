@@ -23,7 +23,11 @@ TIME_CHAR     = 'ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6'
 TEMP_HUM_CHAR = 'ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6'
 DEVICES_FILE  = Path(__file__).parent / 'devices.json'
 
-G = '\033[92m'; Y = '\033[93m'; C = '\033[96m'; R = '\033[91m'
+# DaisyUI dark theme colours (approximate ANSI)
+G = '\033[38;2;54;211;153m'   # success green
+Y = '\033[38;2;251;189;35m'   # warning amber
+C = '\033[38;2;81;182;255m'   # accent blue
+R = '\033[38;2;255;111;97m'   # error red
 D = '\033[2m'; B = '\033[1m'; X = '\033[0m'
 
 
@@ -103,13 +107,13 @@ async def sync_all():
         t, h = await sync_clock(d)
         if t is False:
             fail += 1
-            print(f'  {R}✗{X} {d.name}  {D}-could not connect (out of range or busy){X}')
+            print(f'  {R}✗{X} {d.name}  {D}could not connect{X}')
         elif t is not None:
             ok += 1
-            print(f'  {G}✓{X} {d.name}  {Y}{t:.1f}°C{X}  {C}{h}%{X}  {D}-time synced, sensor read{X}')
+            print(f'  {G}✓{X} {d.name}  {Y}{t:.1f}°C{X}  {C}{h}%{X}')
         else:
             ok += 1
-            print(f'  {G}✓{X} {d.name}  {D}-time synced, no sensor data{X}')
+            print(f'  {G}✓{X} {d.name}  {D}synced{X}')
 
     print(f'\n  {B}Result:{X} {G}{ok} synced{X}', end='')
     if fail:

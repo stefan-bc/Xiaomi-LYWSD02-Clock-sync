@@ -75,7 +75,6 @@
             <thead class="sticky top-0 bg-base-100 z-10">
               <tr>
                 <th>Device</th>
-                <th>ID</th>
                 <th>Status</th>
                 <th>Temp</th>
                 <th>Humidity</th>
@@ -110,7 +109,7 @@
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2 space-y-1">
       <p><a href="https://github.com/stefan-bc/Xiaomi-LYWSD02-Clock-sync" target="_blank" rel="noopener" class="link link-hover">Source on GitHub</a> · Based on <a href="https://github.com/h4/lywsd02" target="_blank" rel="noopener" class="link link-hover">lywsd02</a></p>
-      <p>Last updated: 2026-03-31 14:59 IST
+      <p>Last updated: 2026-03-31 15:05 IST
     </footer>
 
   </div>
@@ -224,10 +223,6 @@ function addLogRow(name, id, status, temp, humidity, time) {
   var tdName = document.createElement('td');
   tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (name || '?') + '</span>';
 
-  var tdId = document.createElement('td');
-  tdId.className = 'font-mono text-xs opacity-40';
-  tdId.textContent = id || '-';
-
   var tdStatus = document.createElement('td');
   if (status === 'error') {
     tr.className = 'opacity-40';
@@ -257,7 +252,6 @@ function addLogRow(name, id, status, temp, humidity, time) {
   tdTime.textContent = typeof time === 'string' ? formatTime(new Date(time)) : formatTime(time);
 
   tr.appendChild(tdName);
-  tr.appendChild(tdId);
   tr.appendChild(tdStatus);
   tr.appendChild(tdTemp);
   tr.appendChild(tdHum);
@@ -272,22 +266,26 @@ function logSync(bleName, id, status) {
 }
 
 function logReading(bleName, id, tempC, humidity) {
+  /* Update the first row that has matching device name and no temp yet */
   var rows = logBody.querySelectorAll('tr');
   for (var i = 0; i < rows.length; i++) {
     var cells = rows[i].querySelectorAll('td');
-    if (cells[1] && cells[1].textContent === id) {
-      cells[3].innerHTML = '<span class="text-warning">' + tempC.toFixed(1) + ' °C</span>';
-      cells[4].innerHTML = '<span class="text-accent">' + humidity + ' %</span>';
-      var history = getHistory();
-      for (var j = history.length - 1; j >= 0; j--) {
-        if (history[j].id === id && !history[j].temp) {
-          history[j].temp = tempC;
-          history[j].humidity = humidity;
-          localStorage.setItem('lywsd02_history', JSON.stringify(history));
-          break;
+    if (cells[2] && cells[2].textContent === '\u2014') {
+      var badge = cells[0].querySelector('.badge');
+      if (badge && badge.textContent === bleName) {
+        cells[2].innerHTML = '<span class="text-warning">' + tempC.toFixed(1) + ' °C</span>';
+        cells[3].innerHTML = '<span class="text-accent">' + humidity + ' %</span>';
+        var history = getHistory();
+        for (var j = history.length - 1; j >= 0; j--) {
+          if (history[j].id === id && !history[j].temp) {
+            history[j].temp = tempC;
+            history[j].humidity = humidity;
+            localStorage.setItem('lywsd02_history', JSON.stringify(history));
+            break;
+          }
         }
+        return;
       }
-      return;
     }
   }
 }
@@ -451,6 +449,7 @@ btnSyncAll.addEventListener('click', function () {
       });
     })
     .then(function (synced) {
+      if (synced === undefined) return;
       if (synced > 0) {
         setStatus(synced + ' device(s) synced', 'success');
       } else {
