@@ -43,9 +43,9 @@
       </div>
     </div>
 
-    <!-- Toast notification (bottom-right, doesn't push content) -->
+    <!-- Toast -->
     <div id="toast-wrap" class="toast toast-end toast-bottom z-50 hidden">
-      <div id="status-alert" role="alert" class="alert">
+      <div id="status-alert" role="alert" class="alert alert-sm cursor-pointer" onclick="document.getElementById('toast-wrap').classList.add('hidden')">
         <span id="status-text"></span>
       </div>
     </div>
@@ -85,14 +85,16 @@
     <!-- Sync log -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body p-5 gap-3">
-        <h2 class="card-title text-sm">Sync log</h2>
+        <div class="flex items-center justify-between">
+          <h2 class="card-title text-sm">Sync log</h2>
+          <button id="btn-clear-log" class="btn btn-ghost btn-xs opacity-40 hover:opacity-100 hidden">Clear</button>
+        </div>
         <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet.</div>
         <div id="log-table-wrap" class="overflow-y-auto max-h-64 hidden">
           <table class="table table-sm w-full">
             <thead class="sticky top-0 bg-base-100 z-10">
               <tr>
-                <th>Name</th>
-                <th>ID</th>
+                <th>Device</th>
                 <th>Status</th>
                 <th>Time</th>
               </tr>
@@ -105,7 +107,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 12:03 IST
+      Last updated: 2026-03-31 12:20 IST
     </footer>
 
   </div>
@@ -125,6 +127,7 @@ var syncAllSpinner = document.getElementById('sync-all-spinner');
 var btnAdd = document.getElementById('btn-add');
 var statusAlert = document.getElementById('status-alert');
 var statusText = document.getElementById('status-text');
+var toastWrap = document.getElementById('toast-wrap');
 var devicesBody = document.getElementById('devices-body');
 var devicesEmpty = document.getElementById('devices-empty');
 var devicesLoading = document.getElementById('devices-loading');
@@ -133,6 +136,7 @@ var deviceCount = document.getElementById('device-count');
 var logBody = document.getElementById('log-body');
 var logEmpty = document.getElementById('log-empty');
 var logTableWrap = document.getElementById('log-table-wrap');
+var btnClearLog = document.getElementById('btn-clear-log');
 
 if (!('bluetooth' in navigator)) {
   document.getElementById('ble-warning').classList.remove('hidden');
@@ -140,13 +144,14 @@ if (!('bluetooth' in navigator)) {
   btnAdd.disabled = true;
 }
 
+/* ---- Utilities ---- */
+
 function getTimezoneOffsetHours() {
   return -(new Date().getTimezoneOffset() / 60);
 }
 
 var h = getTimezoneOffsetHours();
-var sign = h >= 0 ? '+' : '';
-tzLabel.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + ' UTC' + sign + h;
+tzLabel.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + ' UTC' + (h >= 0 ? '+' : '') + h;
 
 function updateClock() {
   var now = new Date();
@@ -156,8 +161,9 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
+function pad(n) { return String(n).padStart(2, '0'); }
+
 function formatTime(d) {
-  var pad = function (n) { return String(n).padStart(2, '0'); };
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
     ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
 }
@@ -171,22 +177,20 @@ function friendlyError(error) {
   return msg;
 }
 
-var toastWrap = document.getElementById('toast-wrap');
+/* ---- Toast ---- */
+
 var toastTimer = null;
 
 function setStatus(message, type) {
-  statusAlert.className = 'alert alert-sm';
+  statusAlert.className = 'alert alert-sm cursor-pointer';
   if (type === 'success') statusAlert.classList.add('alert-success');
   else if (type === 'error') statusAlert.classList.add('alert-error');
   else statusAlert.classList.add('alert-info');
   statusText.textContent = message;
   toastWrap.classList.remove('hidden');
-
   clearTimeout(toastTimer);
   if (type === 'success' || type === 'error') {
-    toastTimer = setTimeout(function () {
-      toastWrap.classList.add('hidden');
-    }, 3000);
+    toastTimer = setTimeout(function () { toastWrap.classList.add('hidden'); }, 3000);
   }
 }
 
@@ -196,9 +200,18 @@ function setSyncing(active) {
   syncAllSpinner.classList.toggle('hidden', !active);
 }
 
-/* ---- Known devices ---- */
+/* ---- Device registry ---- */
 
 var devicesRegistry = {};
+
+/* Look up the friendly name for a device ID from the registry */
+function resolveDeviceName(bleDeviceName, id) {
+  var key = id || bleDeviceName;
+  if (devicesRegistry[key] && devicesRegistry[key].name) {
+    return devicesRegistry[key].name;
+  }
+  return bleDeviceName || id || '-';
+}
 
 function loadDevicesJson() {
   return fetch('devices.json')
@@ -228,16 +241,15 @@ function loadDevicesJson() {
     });
 }
 
-function updateDeviceRegistry(name, id, extra) {
-  var key = id || name;
-  if (!devicesRegistry[key]) {
-    devicesRegistry[key] = { name: name, id: id, location: '', lastSynced: null, lastTemp: null, lastHumidity: null };
+function updateDeviceRegistry(id, extra) {
+  if (!id) return;
+  if (!devicesRegistry[id]) {
+    devicesRegistry[id] = { name: '', id: id, location: '', lastSynced: null, lastTemp: null, lastHumidity: null };
   }
-  if (name && !devicesRegistry[key].name) devicesRegistry[key].name = name;
   if (extra) {
-    if (extra.synced) devicesRegistry[key].lastSynced = extra.synced;
-    if (extra.temp !== undefined) devicesRegistry[key].lastTemp = extra.temp;
-    if (extra.humidity !== undefined) devicesRegistry[key].lastHumidity = extra.humidity;
+    if (extra.synced) devicesRegistry[id].lastSynced = extra.synced;
+    if (extra.temp !== undefined) devicesRegistry[id].lastTemp = extra.temp;
+    if (extra.humidity !== undefined) devicesRegistry[id].lastHumidity = extra.humidity;
   }
   renderDevicesTable();
 }
@@ -256,18 +268,31 @@ function renderDevicesTable() {
   deviceCount.classList.remove('hidden');
   devicesBody.innerHTML = '';
 
+  /* Sort: synced devices first, then by name */
+  keys.sort(function (a, b) {
+    var da = devicesRegistry[a];
+    var db = devicesRegistry[b];
+    if (da.lastSynced && !db.lastSynced) return -1;
+    if (!da.lastSynced && db.lastSynced) return 1;
+    return (da.name || '').localeCompare(db.name || '');
+  });
+
   for (var i = 0; i < keys.length; i++) {
     var dev = devicesRegistry[keys[i]];
     var tr = document.createElement('tr');
 
     var tdName = document.createElement('td');
-    tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (dev.name || '-') + '</span>';
+    tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (dev.name || 'Unnamed') + '</span>';
 
     var tdLocation = document.createElement('td');
-    tdLocation.textContent = dev.location || '-';
+    if (dev.location) {
+      tdLocation.textContent = dev.location;
+    } else {
+      tdLocation.innerHTML = '<span class="opacity-20">\u2014</span>';
+    }
 
     var tdId = document.createElement('td');
-    tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem] opacity-60';
+    tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem] opacity-50';
     tdId.textContent = dev.id || '-';
 
     var tdSynced = document.createElement('td');
@@ -275,7 +300,7 @@ function renderDevicesTable() {
     if (dev.lastSynced) {
       tdSynced.innerHTML = '<span class="text-success">' + formatTime(new Date(dev.lastSynced)) + '</span>';
     } else {
-      tdSynced.innerHTML = '<span class="opacity-30">never</span>';
+      tdSynced.innerHTML = '<span class="opacity-20">never</span>';
     }
 
     var tdTemp = document.createElement('td');
@@ -283,7 +308,7 @@ function renderDevicesTable() {
     if (dev.lastTemp !== null) {
       tdTemp.innerHTML = '<span class="text-warning">' + dev.lastTemp.toFixed(1) + ' °C</span>';
     } else {
-      tdTemp.innerHTML = '<span class="opacity-30">-</span>';
+      tdTemp.innerHTML = '<span class="opacity-20">\u2014</span>';
     }
 
     var tdHum = document.createElement('td');
@@ -291,7 +316,7 @@ function renderDevicesTable() {
     if (dev.lastHumidity !== null) {
       tdHum.innerHTML = '<span class="text-accent">' + dev.lastHumidity + ' %</span>';
     } else {
-      tdHum.innerHTML = '<span class="opacity-30">-</span>';
+      tdHum.innerHTML = '<span class="opacity-20">\u2014</span>';
     }
 
     var tdAction = document.createElement('td');
@@ -300,8 +325,7 @@ function renderDevicesTable() {
     btn.textContent = 'Sync';
     btn.dataset.deviceId = dev.id;
     btn.addEventListener('click', function () {
-      var deviceId = this.dataset.deviceId;
-      syncSingleById(deviceId, this);
+      syncSingleById(this.dataset.deviceId, this);
     });
     tdAction.appendChild(btn);
 
@@ -331,25 +355,22 @@ function saveToHistory(entry) {
 function showLogTable() {
   logEmpty.classList.add('hidden');
   logTableWrap.classList.remove('hidden');
+  btnClearLog.classList.remove('hidden');
 }
 
-function addLogRow(name, id, status, time) {
+function addLogRow(displayName, status, time) {
   showLogTable();
   var tr = document.createElement('tr');
 
   var tdName = document.createElement('td');
-  tdName.innerHTML = '<span class="badge badge-info badge-sm">' + (name || '-') + '</span>';
-
-  var tdId = document.createElement('td');
-  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem] opacity-60';
-  tdId.textContent = id || '-';
+  tdName.innerHTML = '<span class="badge badge-info badge-sm">' + displayName + '</span>';
 
   var tdStatus = document.createElement('td');
   if (status === 'error') {
     tr.className = 'opacity-40';
-    tdStatus.innerHTML = '<span class="badge badge-error badge-sm gap-1">failed</span>';
+    tdStatus.innerHTML = '<span class="badge badge-error badge-sm">failed</span>';
   } else {
-    tdStatus.innerHTML = '<span class="badge badge-success badge-sm gap-1">synced</span>';
+    tdStatus.innerHTML = '<span class="badge badge-success badge-sm">synced</span>';
   }
 
   var tdTime = document.createElement('td');
@@ -357,30 +378,39 @@ function addLogRow(name, id, status, time) {
   tdTime.textContent = typeof time === 'string' ? formatTime(new Date(time)) : formatTime(time);
 
   tr.appendChild(tdName);
-  tr.appendChild(tdId);
   tr.appendChild(tdStatus);
   tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
 }
 
-function logSync(name, id, status) {
+function logSync(bleName, id, status) {
   var now = new Date();
-  addLogRow(name, id, status, now);
-  saveToHistory({ name: name, id: id, action: status || 'synced', time: now.toISOString() });
+  var displayName = resolveDeviceName(bleName, id);
+  addLogRow(displayName, status, now);
+  saveToHistory({ name: displayName, id: id, action: status || 'synced', time: now.toISOString() });
   if (id && status !== 'error') {
-    updateDeviceRegistry(name, id, { synced: now.toISOString() });
+    updateDeviceRegistry(id, { synced: now.toISOString() });
   }
 }
 
-function logReading(name, id, tempC, humidity) {
+function logReading(bleName, id, tempC, humidity) {
   if (id) {
-    updateDeviceRegistry(name, id, { temp: tempC, humidity: humidity });
+    updateDeviceRegistry(id, { temp: tempC, humidity: humidity });
   }
 }
+
+/* Clear log */
+btnClearLog.addEventListener('click', function () {
+  localStorage.removeItem('lywsd02_history');
+  logBody.innerHTML = '';
+  logTableWrap.classList.add('hidden');
+  logEmpty.classList.remove('hidden');
+  btnClearLog.classList.add('hidden');
+});
 
 /* ---- BLE ---- */
 
-function readTempHumidity(service, name, id) {
+function readTempHumidity(service, bleName, id) {
   return service.getCharacteristic(TEMP_HUM_CHAR)
     .then(function (char) {
       return new Promise(function (resolve) {
@@ -390,7 +420,7 @@ function readTempHumidity(service, name, id) {
           var tempRaw = data.getInt16(0, true);
           var tempC = tempRaw / 100;
           var humidity = data.getUint8(2);
-          logReading(name, id, tempC, humidity);
+          logReading(bleName, id, tempC, humidity);
           char.stopNotifications().then(resolve).catch(resolve);
         });
         char.startNotifications();
@@ -410,7 +440,7 @@ function buildTimePayload() {
 }
 
 function syncDevice(device) {
-  var name = device.name || '';
+  var bleName = device.name || '';
   var id = device.id || '';
   return device.gatt.connect()
     .then(function (server) {
@@ -422,20 +452,45 @@ function syncDevice(device) {
           return char.writeValue(buildTimePayload());
         })
         .then(function () {
-          logSync(name, id);
-          return readTempHumidity(service, name, id);
+          logSync(bleName, id);
+          return readTempHumidity(service, bleName, id);
         });
     })
     .then(function () {
       if (device.gatt.connected) device.gatt.disconnect();
     })
     .catch(function () {
-      logSync(name, id, 'error');
+      logSync(bleName, id, 'error');
       if (device.gatt.connected) device.gatt.disconnect();
     });
 }
 
-/* Sync a single device by its ID using getDevices or falling back to picker */
+/* Wait for a device to advertise, then sync it. Timeout after 10s. */
+function waitAndSync(device) {
+  return new Promise(function (resolve) {
+    var done = false;
+    function finish() { if (!done) { done = true; resolve(); } }
+
+    var timer = setTimeout(function () {
+      logSync(device.name || '', device.id || '', 'error');
+      finish();
+    }, 10000);
+
+    device.addEventListener('advertisementreceived', function onAdv() {
+      device.removeEventListener('advertisementreceived', onAdv);
+      clearTimeout(timer);
+      syncDevice(device).then(finish).catch(finish);
+    });
+
+    device.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
+      .catch(function () {
+        clearTimeout(timer);
+        syncDevice(device).then(finish).catch(finish);
+      });
+  });
+}
+
+/* Sync a single device by ID */
 function syncSingleById(deviceId, btn) {
   var originalText = btn.textContent;
   btn.disabled = true;
@@ -446,85 +501,34 @@ function syncSingleById(deviceId, btn) {
     btn.textContent = originalText;
   }
 
-  if (navigator.bluetooth.getDevices) {
-    navigator.bluetooth.getDevices()
-      .then(function (devices) {
-        var match = null;
-        for (var i = 0; i < devices.length; i++) {
-          if (devices[i].id === deviceId) { match = devices[i]; break; }
-        }
-        if (!match) {
-          setStatus('Not yet paired — select it from the picker', 'info');
-          return navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: [TIME_SERVICE]
-          })
-          .then(function (device) {
-            setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
-            return syncDevice(device);
-          })
-          .then(function () {
-            setStatus('Done', 'success');
-            restore();
-          })
-          .catch(function (err) {
-            setStatus(friendlyError(err), 'error');
-            restore();
-          });
-        }
-        setStatus('Connecting to ' + (match.name || match.id) + '\u2026', 'info');
-
-        return new Promise(function (resolve) {
-          var done = false;
-          function finish() {
-            if (!done) { done = true; resolve(); }
-          }
-
-          var timer = setTimeout(function () {
-            logSync(match.name || '', match.id || '', 'error');
-            setStatus('Timed out', 'error');
-            finish();
-          }, 10000);
-
-          match.addEventListener('advertisementreceived', function onAdv() {
-            match.removeEventListener('advertisementreceived', onAdv);
-            clearTimeout(timer);
-            syncDevice(match).then(function () {
-              setStatus('Done', 'success');
-            }).then(finish).catch(finish);
-          });
-
-          match.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
-            .catch(function () {
-              clearTimeout(timer);
-              syncDevice(match).then(function () {
-                setStatus('Done', 'success');
-              }).then(finish).catch(finish);
-            });
-        }).then(restore);
-      })
-      .catch(function (err) {
-        setStatus(friendlyError(err), 'error');
-        restore();
-      });
-  } else {
-    navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [TIME_SERVICE]
-    })
-    .then(function (device) {
-      setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
-      return syncDevice(device);
-    })
-    .then(function () {
-      setStatus('Done', 'success');
-      restore();
-    })
-    .catch(function (err) {
-      setStatus(friendlyError(err), 'error');
-      restore();
-    });
+  if (!navigator.bluetooth.getDevices) {
+    /* No getDevices — fall back to picker */
+    navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
+      .then(function (device) { return syncDevice(device); })
+      .then(function () { setStatus('Done', 'success'); restore(); })
+      .catch(function (err) { setStatus(friendlyError(err), 'error'); restore(); });
+    return;
   }
+
+  var friendlyName = resolveDeviceName('', deviceId);
+  setStatus('Connecting to ' + friendlyName + '\u2026', 'info');
+
+  navigator.bluetooth.getDevices()
+    .then(function (devices) {
+      var match = null;
+      for (var i = 0; i < devices.length; i++) {
+        if (devices[i].id === deviceId) { match = devices[i]; break; }
+      }
+      if (!match) {
+        setStatus('Not yet paired \u2014 select from picker', 'info');
+        return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
+          .then(function (device) { return syncDevice(device); })
+          .then(function () { setStatus('Done', 'success'); });
+      }
+      return waitAndSync(match).then(function () { setStatus('Done', 'success'); });
+    })
+    .then(restore)
+    .catch(function (err) { setStatus(friendlyError(err), 'error'); restore(); });
 }
 
 /* ---- Init ---- */
@@ -534,7 +538,7 @@ function loadHistory() {
   for (var i = 0; i < history.length; i++) {
     var entry = history[i];
     if (entry.action !== undefined) {
-      addLogRow(entry.name, entry.id, entry.action, entry.time);
+      addLogRow(entry.name || '-', entry.action, entry.time);
     }
   }
 }
@@ -545,85 +549,51 @@ loadHistory();
 /* ---- Buttons ---- */
 
 btnAdd.addEventListener('click', function () {
-  navigator.bluetooth.requestDevice({
-    acceptAllDevices: true,
-    optionalServices: [TIME_SERVICE]
-  })
-  .then(function (device) {
-    updateDeviceRegistry(device.name || '', device.id || '', {});
-    setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
-    return syncDevice(device);
-  })
-  .then(function () {
-    setStatus('Done', 'success');
-  })
-  .catch(function (error) {
-    setStatus(friendlyError(error), 'error');
-  });
+  navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
+    .then(function (device) {
+      if (!devicesRegistry[device.id]) {
+        devicesRegistry[device.id] = { name: '', id: device.id, location: '', lastSynced: null, lastTemp: null, lastHumidity: null };
+        renderDevicesTable();
+      }
+      setStatus('Syncing ' + resolveDeviceName(device.name, device.id) + '\u2026', 'info');
+      return syncDevice(device);
+    })
+    .then(function () { setStatus('Done', 'success'); })
+    .catch(function (error) { setStatus(friendlyError(error), 'error'); });
 });
 
 btnSyncAll.addEventListener('click', function () {
   if (!navigator.bluetooth.getDevices) {
-    setStatus('getDevices() not supported — enable chrome://flags/#enable-web-bluetooth-new-permissions-backend', 'error');
+    setStatus('Enable chrome://flags/#enable-web-bluetooth-new-permissions-backend', 'error');
     return;
   }
 
-  setStatus('Scanning for paired devices\u2026', 'info');
+  setStatus('Scanning\u2026', 'info');
   setSyncing(true);
 
   navigator.bluetooth.getDevices()
     .then(function (devices) {
       if (devices.length === 0) {
-        setStatus('No paired devices — add one first', 'error');
+        setStatus('No paired devices \u2014 add one first', 'error');
         setSyncing(false);
         return;
       }
 
       var total = devices.length;
       var done = 0;
-      setStatus('Syncing 0/' + total + ' devices\u2026', 'info');
+      setStatus('Syncing 0/' + total + '\u2026', 'info');
 
       var promises = devices.map(function (device) {
-        return new Promise(function (resolve) {
-          var resolved = false;
-          function finish() {
-            if (!resolved) {
-              resolved = true;
-              done++;
-              setStatus('Syncing ' + done + '/' + total + ' devices\u2026', 'info');
-              resolve();
-            }
-          }
-
-          var timer = setTimeout(function () {
-            logSync(device.name || '', device.id || '', 'error');
-            finish();
-          }, 10000);
-
-          device.addEventListener('advertisementreceived', function onAdv() {
-            device.removeEventListener('advertisementreceived', onAdv);
-            clearTimeout(timer);
-            syncDevice(device).then(finish).catch(finish);
-          });
-
-          device.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
-            .catch(function () {
-              clearTimeout(timer);
-              syncDevice(device).then(finish).catch(finish);
-            });
+        return waitAndSync(device).then(function () {
+          done++;
+          setStatus('Syncing ' + done + '/' + total + '\u2026', 'info');
         });
       });
 
       return Promise.all(promises);
     })
-    .then(function () {
-      setStatus('All done', 'success');
-      setSyncing(false);
-    })
-    .catch(function (error) {
-      setStatus(friendlyError(error), 'error');
-      setSyncing(false);
-    });
+    .then(function () { setStatus('All done', 'success'); setSyncing(false); })
+    .catch(function (error) { setStatus(friendlyError(error), 'error'); setSyncing(false); });
 });
 </script>
 </body>
