@@ -1,3 +1,19 @@
 {
-  "devices": []
+  "devices": [
+    {
+      "name": "LYWSD02MMC",
+      "id": "juBZHjLFZLvs9pqAQWrc1A==",
+      "location": ""
+    },
+    {
+      "name": "LYWSD02MMC",
+      "id": "m4lWvb1XFt6c9Y8dkv4lsA==",
+      "location": ""
+    },
+    {
+      "name": "LYWSD02MMC",
+      "id": "BoDcoFEsO/XoY9nsWWiwrg==",
+      "location": ""
+    }
+  ]
 }
