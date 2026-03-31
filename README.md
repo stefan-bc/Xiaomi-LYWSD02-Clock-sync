@@ -14,7 +14,7 @@ Use it directly in a Chromium-based browser. No install needed.
 
 **Live page:** [stefan-bc.github.io/Xiaomi-LYWSD02-Clock-sync](https://stefan-bc.github.io/Xiaomi-LYWSD02-Clock-sync/)
 
-### How it works
+### How to use
 
 1. Open the page in **Chrome, Edge, or Opera** (Web Bluetooth is not supported in Firefox/Safari)
 2. Click **Add device** - Chrome will show a Bluetooth picker, select your clock
