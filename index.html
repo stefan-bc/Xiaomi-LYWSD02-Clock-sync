@@ -472,11 +472,36 @@ function syncSingleById(deviceId, btn) {
             restore();
           });
         }
-        setStatus('Syncing ' + (match.name || match.id) + '\u2026', 'info');
-        return syncDevice(match).then(function () {
-          setStatus('Done', 'success');
-          restore();
-        });
+        setStatus('Connecting to ' + (match.name || match.id) + '\u2026', 'info');
+
+        return new Promise(function (resolve) {
+          var done = false;
+          function finish() {
+            if (!done) { done = true; resolve(); }
+          }
+
+          var timer = setTimeout(function () {
+            logSync(match.name || '', match.id || '', 'error');
+            setStatus('Timed out', 'error');
+            finish();
+          }, 10000);
+
+          match.addEventListener('advertisementreceived', function onAdv() {
+            match.removeEventListener('advertisementreceived', onAdv);
+            clearTimeout(timer);
+            syncDevice(match).then(function () {
+              setStatus('Done', 'success');
+            }).then(finish).catch(finish);
+          });
+
+          match.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
+            .catch(function () {
+              clearTimeout(timer);
+              syncDevice(match).then(function () {
+                setStatus('Done', 'success');
+              }).then(finish).catch(finish);
+            });
+        }).then(restore);
       })
       .catch(function (err) {
         setStatus(friendlyError(err), 'error');
