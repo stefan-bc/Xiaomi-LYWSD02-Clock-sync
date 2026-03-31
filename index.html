@@ -54,9 +54,10 @@
         <!-- Timezone badge -->
         <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
 
-        <!-- Sync button -->
-        <div class="card-actions w-full">
-          <button id="btn-time" class="btn btn-primary btn-block">Sync time</button>
+        <!-- Buttons -->
+        <div class="card-actions w-full flex-col gap-2">
+          <button id="btn-sync-all" class="btn btn-primary btn-block">Sync all paired devices</button>
+          <button id="btn-add" class="btn btn-outline btn-sm btn-block">Add new device</button>
         </div>
 
         <!-- Status alert -->
@@ -99,7 +100,8 @@ var hrsEl = document.getElementById('hrs');
 var minEl = document.getElementById('min');
 var secEl = document.getElementById('sec');
 var tzLabel = document.getElementById('tz-label');
-var btnTime = document.getElementById('btn-time');
+var btnSyncAll = document.getElementById('btn-sync-all');
+var btnAdd = document.getElementById('btn-add');
 var statusAlert = document.getElementById('status-alert');
 var statusText = document.getElementById('status-text');
 var logCard = document.getElementById('log-card');
@@ -109,7 +111,8 @@ var readingsBody = document.getElementById('readings-body');
 
 if (!('bluetooth' in navigator)) {
   document.getElementById('ble-warning').classList.remove('hidden');
-  btnTime.disabled = true;
+  btnSyncAll.disabled = true;
+  btnAdd.disabled = true;
 }
 
 function getTimezoneOffsetHours() {
@@ -138,8 +141,7 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
-/* Add a row to the sync log */
-function logSync(deviceName) {
+function logSync(deviceName, status) {
   logCard.classList.remove('hidden');
   var tr = document.createElement('tr');
 
@@ -153,12 +155,20 @@ function logSync(deviceName) {
   tdTime.className = 'font-mono text-xs opacity-70';
   tdTime.textContent = new Date().toISOString();
 
+  /* Optional status badge for errors */
+  if (status === 'error') {
+    tr.className = 'opacity-40';
+    var badge = document.createElement('span');
+    badge.className = 'badge badge-error badge-xs ml-1';
+    badge.textContent = 'fail';
+    tdName.appendChild(badge);
+  }
+
   tr.appendChild(tdName);
   tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
 }
 
-/* Add a row to the readings log */
 function logReading(deviceName, tempC, humidity) {
   readingsCard.classList.remove('hidden');
   var tr = document.createElement('tr');
@@ -188,10 +198,6 @@ function logReading(deviceName, tempC, humidity) {
   readingsBody.insertBefore(tr, readingsBody.firstChild);
 }
 
-/* Read temperature and humidity via BLE notification.
-   The LYWSD02 sends data on characteristic ebe0ccc1:
-   bytes 0-1 = int16 LE temperature in hundredths of °C
-   byte 2    = uint8 humidity % */
 function readTempHumidity(service, deviceName) {
   return service.getCharacteristic(TEMP_HUM_CHAR)
     .then(function (char) {
@@ -208,32 +214,7 @@ function readTempHumidity(service, deviceName) {
         char.startNotifications();
       });
     })
-    .catch(function () {
-      /* Silently skip if temp characteristic is unavailable */
-    });
-}
-
-var lastDeviceName = '';
-var lastService = null;
-
-function connectAndGetService() {
-  return navigator.bluetooth.requestDevice({
-    acceptAllDevices: true,
-    optionalServices: [TIME_SERVICE]
-  })
-  .then(function (device) {
-    lastDeviceName = device.name || device.id || '';
-    setStatus('Connecting\u2026', 'info');
-    return device.gatt.connect();
-  })
-  .then(function (server) {
-    setStatus('Getting service\u2026', 'info');
-    return server.getPrimaryService(TIME_SERVICE);
-  })
-  .then(function (service) {
-    lastService = service;
-    return service;
-  });
+    .catch(function () {});
 }
 
 function buildTimePayload() {
@@ -246,25 +227,117 @@ function buildTimePayload() {
   return buffer;
 }
 
-btnTime.addEventListener('click', function () {
-  connectAndGetService()
+/* Sync a single already-connected device: write time, read sensor, disconnect */
+function syncDevice(device) {
+  var name = device.name || device.id || 'Unknown';
+  return device.gatt.connect()
+    .then(function (server) {
+      return server.getPrimaryService(TIME_SERVICE);
+    })
     .then(function (service) {
-      setStatus('Writing time\u2026', 'info');
       return service.getCharacteristic(TIME_CHAR)
         .then(function (char) {
           return char.writeValue(buildTimePayload());
         })
         .then(function () {
-          setStatus('Time synced — reading sensor\u2026', 'success');
-          logSync(lastDeviceName);
-          return readTempHumidity(service, lastDeviceName);
+          logSync(name);
+          return readTempHumidity(service, name);
         });
     })
     .then(function () {
-      setStatus('Done', 'success');
+      if (device.gatt.connected) device.gatt.disconnect();
+    })
+    .catch(function (err) {
+      logSync(name, 'error');
+      if (device.gatt.connected) device.gatt.disconnect();
+    });
+}
+
+/* "Add new device" — opens the picker once to grant permission,
+   then immediately syncs it */
+btnAdd.addEventListener('click', function () {
+  navigator.bluetooth.requestDevice({
+    acceptAllDevices: true,
+    optionalServices: [TIME_SERVICE]
+  })
+  .then(function (device) {
+    setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
+    return syncDevice(device);
+  })
+  .then(function () {
+    setStatus('Done', 'success');
+  })
+  .catch(function (error) {
+    setStatus(String(error), 'error');
+  });
+});
+
+/* "Sync all" — uses getDevices() to reconnect to every previously
+   paired device without showing the picker. Watches for advertisements
+   to find devices that are in range, then syncs each one. */
+btnSyncAll.addEventListener('click', function () {
+  if (!navigator.bluetooth.getDevices) {
+    setStatus('getDevices() not supported — use Add to sync one at a time', 'error');
+    return;
+  }
+
+  setStatus('Scanning for paired devices\u2026', 'info');
+  btnSyncAll.disabled = true;
+  btnSyncAll.classList.add('loading');
+
+  navigator.bluetooth.getDevices()
+    .then(function (devices) {
+      if (devices.length === 0) {
+        setStatus('No paired devices — use Add first', 'error');
+        btnSyncAll.disabled = false;
+        btnSyncAll.classList.remove('loading');
+        return;
+      }
+
+      setStatus('Found ' + devices.length + ' paired device(s), connecting\u2026', 'info');
+
+      /* Try to connect to each device. watchAdvertisements() detects
+         which ones are in range; we give each device a 10s window. */
+      var promises = devices.map(function (device) {
+        return new Promise(function (resolve) {
+          var resolved = false;
+          function done() {
+            if (!resolved) { resolved = true; resolve(); }
+          }
+
+          /* Timeout — skip device if not found within 10s */
+          var timer = setTimeout(function () {
+            logSync(device.name || device.id || 'Unknown', 'error');
+            done();
+          }, 10000);
+
+          /* When we see the device advertising, connect and sync */
+          device.addEventListener('advertisementreceived', function onAdv() {
+            device.removeEventListener('advertisementreceived', onAdv);
+            clearTimeout(timer);
+            syncDevice(device).then(done).catch(done);
+          });
+
+          device.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
+            .catch(function () {
+              /* watchAdvertisements not supported — try direct connect */
+              clearTimeout(timer);
+              syncDevice(device).then(done).catch(done);
+            });
+        });
+      });
+
+      return Promise.all(promises);
+    })
+    .then(function () {
+      setStatus('All done', 'success');
+      btnSyncAll.disabled = false;
+      btnSyncAll.classList.remove('loading');
     })
     .catch(function (error) {
       setStatus(String(error), 'error');
+      btnSyncAll.disabled = false;
+      btnSyncAll.classList.remove('loading');
     });
 });
 </script>
