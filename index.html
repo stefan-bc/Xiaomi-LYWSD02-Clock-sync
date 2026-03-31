@@ -80,29 +80,24 @@
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body p-5 gap-3">
         <h2 class="card-title text-sm">CLI tool (Alternative)</h2>
-        <p class="text-sm opacity-60">Sync all clocks from terminal. Auto-discovers devices, syncs time, reads sensors. Paste into Terminal.app.</p>
+        <p class="text-sm opacity-60">Sync all clocks from terminal. Paste into Terminal.app — click to copy.</p>
         <div class="text-sm flex flex-col gap-2">
           <div>
-            <p class="opacity-40 mb-1">Setup (one time)</p>
-            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors leading-relaxed">brew install python3 2>/dev/null; pip3 install bleak 2>/dev/null; echo "Done"</code>
+            <p class="opacity-40 mb-1">1. Setup (one time)</p>
+            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors leading-relaxed">pip3 install bleak</code>
           </div>
           <div>
-            <p class="opacity-40 mb-1">Sync all clocks</p>
-            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors leading-relaxed">cd ~/Library/Mobile\ Documents/com~apple~CloudDocs/Claude/other/LYWSD02-clock-sync && python3 sync.py</code>
-          </div>
-          <div>
-            <p class="opacity-40 mb-1">Scan and save device list</p>
-            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors leading-relaxed">cd ~/Library/Mobile\ Documents/com~apple~CloudDocs/Claude/other/LYWSD02-clock-sync && python3 sync.py --scan --save</code>
+            <p class="opacity-40 mb-1">2. Sync all clocks (runs directly from GitHub)</p>
+            <code class="copyable block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs cursor-pointer hover:bg-base-200 transition-colors leading-relaxed">curl -sL https://raw.githubusercontent.com/stefan-bc/LYWSD02-clock-sync/main/sync.py | python3</code>
           </div>
         </div>
-        <p class="text-xs opacity-40">If you get "Bluetooth device is turned off": System Settings → Privacy &amp; Security → Bluetooth → enable Terminal</p>
-        <a href="sync.py" download class="btn btn-secondary btn-sm btn-block">Download sync.py</a>
+        <p class="text-xs opacity-40 mt-1">If "Bluetooth device is turned off": System Settings → Privacy &amp; Security → Bluetooth → enable Terminal</p>
       </div>
     </div>
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 14:03 IST
+      Last updated: 2026-03-31 14:05 IST
     </footer>
 
   </div>
