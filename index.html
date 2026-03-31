@@ -43,9 +43,11 @@
       </div>
     </div>
 
-    <!-- Status bar -->
-    <div id="status-alert" role="alert" class="alert hidden">
-      <span id="status-text"></span>
+    <!-- Toast notification (bottom-right, doesn't push content) -->
+    <div id="toast-wrap" class="toast toast-end toast-bottom z-50 hidden">
+      <div id="status-alert" role="alert" class="alert">
+        <span id="status-text"></span>
+      </div>
     </div>
 
     <!-- Known devices -->
@@ -169,13 +171,23 @@ function friendlyError(error) {
   return msg;
 }
 
+var toastWrap = document.getElementById('toast-wrap');
+var toastTimer = null;
+
 function setStatus(message, type) {
-  statusAlert.className = 'alert';
+  statusAlert.className = 'alert alert-sm';
   if (type === 'success') statusAlert.classList.add('alert-success');
   else if (type === 'error') statusAlert.classList.add('alert-error');
   else statusAlert.classList.add('alert-info');
   statusText.textContent = message;
-  statusAlert.classList.remove('hidden');
+  toastWrap.classList.remove('hidden');
+
+  clearTimeout(toastTimer);
+  if (type === 'success' || type === 'error') {
+    toastTimer = setTimeout(function () {
+      toastWrap.classList.add('hidden');
+    }, 3000);
+  }
 }
 
 function setSyncing(active) {
