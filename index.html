@@ -54,7 +54,8 @@
           <table class="table table-sm w-full">
             <thead>
               <tr>
-                <th class="w-1/3">Device</th>
+                <th>Name</th>
+                <th>ID</th>
                 <th>Status</th>
                 <th>Time</th>
               </tr>
@@ -73,7 +74,8 @@
           <table class="table table-sm w-full">
             <thead>
               <tr>
-                <th>Device</th>
+                <th>Name</th>
+                <th>ID</th>
                 <th>Temp</th>
                 <th>Humidity</th>
                 <th>Time</th>
@@ -88,7 +90,7 @@
   </div>
 
   <footer class="text-center text-xs opacity-30 font-mono">
-    Last updated: 2026-03-31T11:18 IST
+    Last updated: 2026-03-31T11:23 IST
   </footer>
 
 <script>
@@ -157,15 +159,18 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
-function logSync(deviceName, status) {
+function logSync(deviceName, deviceId, status) {
   logCard.classList.remove('hidden');
   var tr = document.createElement('tr');
 
   var tdName = document.createElement('td');
+  tdName.textContent = deviceName || '-';
+
+  var tdId = document.createElement('td');
   var code = document.createElement('code');
-  code.className = 'select-all cursor-pointer badge badge-ghost';
-  code.textContent = deviceName || 'Unknown';
-  tdName.appendChild(code);
+  code.className = 'select-all cursor-pointer badge badge-ghost badge-sm text-xs';
+  code.textContent = deviceId || '-';
+  tdId.appendChild(code);
 
   var tdStatus = document.createElement('td');
   if (status === 'error') {
@@ -180,20 +185,26 @@ function logSync(deviceName, status) {
   tdTime.textContent = formatTime(new Date());
 
   tr.appendChild(tdName);
+  tr.appendChild(tdId);
   tr.appendChild(tdStatus);
   tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
+
+  saveToHistory({ name: deviceName, id: deviceId, action: status || 'synced', time: new Date().toISOString() });
 }
 
-function logReading(deviceName, tempC, humidity) {
+function logReading(deviceName, deviceId, tempC, humidity) {
   readingsCard.classList.remove('hidden');
   var tr = document.createElement('tr');
 
   var tdName = document.createElement('td');
+  tdName.textContent = deviceName || '-';
+
+  var tdId = document.createElement('td');
   var code = document.createElement('code');
-  code.className = 'select-all cursor-pointer badge badge-ghost';
-  code.textContent = deviceName || 'Unknown';
-  tdName.appendChild(code);
+  code.className = 'select-all cursor-pointer badge badge-ghost badge-sm text-xs';
+  code.textContent = deviceId || '-';
+  tdId.appendChild(code);
 
   var tdTemp = document.createElement('td');
   tdTemp.className = 'font-mono';
@@ -208,13 +219,16 @@ function logReading(deviceName, tempC, humidity) {
   tdTime.textContent = formatTime(new Date());
 
   tr.appendChild(tdName);
+  tr.appendChild(tdId);
   tr.appendChild(tdTemp);
   tr.appendChild(tdHum);
   tr.appendChild(tdTime);
   readingsBody.insertBefore(tr, readingsBody.firstChild);
+
+  saveToHistory({ name: deviceName, id: deviceId, temp: tempC, humidity: humidity, time: new Date().toISOString() });
 }
 
-function readTempHumidity(service, deviceName) {
+function readTempHumidity(service, deviceName, deviceId) {
   return service.getCharacteristic(TEMP_HUM_CHAR)
     .then(function (char) {
       return new Promise(function (resolve) {
@@ -224,7 +238,7 @@ function readTempHumidity(service, deviceName) {
           var tempRaw = data.getInt16(0, true);
           var tempC = tempRaw / 100;
           var humidity = data.getUint8(2);
-          logReading(deviceName, tempC, humidity);
+          logReading(deviceName, deviceId, tempC, humidity);
           char.stopNotifications().then(resolve).catch(resolve);
         });
         char.startNotifications();
@@ -244,7 +258,8 @@ function buildTimePayload() {
 }
 
 function syncDevice(device) {
-  var name = device.name || device.id || 'Unknown';
+  var name = device.name || '';
+  var id = device.id || '';
   return device.gatt.connect()
     .then(function (server) {
       return server.getPrimaryService(TIME_SERVICE);
@@ -255,17 +270,24 @@ function syncDevice(device) {
           return char.writeValue(buildTimePayload());
         })
         .then(function () {
-          logSync(name);
-          return readTempHumidity(service, name);
+          logSync(name, id);
+          return readTempHumidity(service, name, id);
         });
     })
     .then(function () {
       if (device.gatt.connected) device.gatt.disconnect();
     })
     .catch(function () {
-      logSync(name, 'error');
+      logSync(name, id, 'error');
       if (device.gatt.connected) device.gatt.disconnect();
     });
+}
+
+/* Persist all sync/reading events to localStorage as JSON */
+function saveToHistory(entry) {
+  var history = JSON.parse(localStorage.getItem('lywsd02_history') || '[]');
+  history.push(entry);
+  localStorage.setItem('lywsd02_history', JSON.stringify(history));
 }
 
 btnAdd.addEventListener('click', function () {
@@ -314,7 +336,7 @@ btnSyncAll.addEventListener('click', function () {
           }
 
           var timer = setTimeout(function () {
-            logSync(device.name || device.id || 'Unknown', 'error');
+            logSync(device.name || '', device.id || '', 'error');
             done();
           }, 10000);
 
