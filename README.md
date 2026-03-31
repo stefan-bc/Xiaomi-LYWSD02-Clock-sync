@@ -81,7 +81,6 @@ If you get **"Bluetooth device is turned off"** on macOS:
 
 ## Credits
 
-Based on the [lywsd02](https://github.com/h4/lywsd02) Python client.
-
+- [saso5/LYWSD02-clock-sync](https://saso5.github.io/LYWSD02-clock-sync/) - original web implementation
+- [h4/lywsd02](https://github.com/h4/lywsd02/blob/master/lywsd02/client.py) - Python BLE client and protocol reference
 - [Harold De Armas](https://github.com/dearmash) - C/F unit support
-- [Mitja Pugelj](https://www.linkedin.com/in/mitjapugelj)
