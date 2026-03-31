@@ -26,8 +26,7 @@
 
       <div class="flex items-center justify-center gap-1 font-mono text-5xl tabular-nums">
         <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
-        <span class="countdown"><span id="min" style="--value:0;"></span></span>:
-        <span class="countdown text-3xl opacity-40"><span id="sec" style="--value:0;"></span></span>
+        <span class="countdown"><span id="min" style="--value:0;"></span></span>
       </div>
 
       <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
@@ -100,7 +99,6 @@ var TEMP_HUM_CHAR = 'ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6';
 
 var hrsEl = document.getElementById('hrs');
 var minEl = document.getElementById('min');
-var secEl = document.getElementById('sec');
 var tzLabel = document.getElementById('tz-label');
 var btnSyncAll = document.getElementById('btn-sync-all');
 var btnAdd = document.getElementById('btn-add');
@@ -129,7 +127,6 @@ function updateClock() {
   var now = new Date();
   hrsEl.style.setProperty('--value', now.getHours());
   minEl.style.setProperty('--value', now.getMinutes());
-  secEl.style.setProperty('--value', now.getSeconds());
 }
 updateClock();
 setInterval(updateClock, 1000);
