@@ -58,17 +58,28 @@
         <div class="card-body p-5 gap-3">
           <h2 class="card-title text-sm">CLI tool</h2>
           <p class="text-sm opacity-60">Sync all clocks from terminal. Auto-discovers devices, syncs time, reads sensors.</p>
-          <div class="text-sm">
-            <p class="opacity-40 mb-1">Install</p>
-            <code class="block select-all bg-base-300 rounded-lg px-3 py-2 font-mono text-xs">pip3 install bleak</code>
-          </div>
-          <div class="text-sm">
-            <p class="opacity-40 mb-1">Usage</p>
-            <code class="block select-all bg-base-300 rounded-lg px-3 py-2 font-mono text-xs">python3 sync.py</code>
-          </div>
-          <div class="text-sm">
-            <p class="opacity-40 mb-1">Scan only</p>
-            <code class="block select-all bg-base-300 rounded-lg px-3 py-2 font-mono text-xs">python3 sync.py --scan</code>
+          <div class="text-sm flex flex-col gap-2">
+            <div>
+              <p class="opacity-40 mb-1">Install</p>
+              <div class="relative group">
+                <code class="block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs pr-16">pip3 install bleak</code>
+                <button class="copy-btn btn btn-ghost btn-xs absolute right-1 top-1 opacity-0 group-hover:opacity-100" data-text="pip3 install bleak">Copy</button>
+              </div>
+            </div>
+            <div>
+              <p class="opacity-40 mb-1">Usage</p>
+              <div class="relative group">
+                <code class="block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs pr-16">python3 sync.py</code>
+                <button class="copy-btn btn btn-ghost btn-xs absolute right-1 top-1 opacity-0 group-hover:opacity-100" data-text="python3 sync.py">Copy</button>
+              </div>
+            </div>
+            <div>
+              <p class="opacity-40 mb-1">Scan only</p>
+              <div class="relative group">
+                <code class="block bg-base-300 rounded-lg px-3 py-2 font-mono text-xs pr-16">python3 sync.py --scan</code>
+                <button class="copy-btn btn btn-ghost btn-xs absolute right-1 top-1 opacity-0 group-hover:opacity-100" data-text="python3 sync.py --scan">Copy</button>
+              </div>
+            </div>
           </div>
           <a href="sync.py" download class="btn btn-secondary btn-sm btn-block">Download sync.py</a>
         </div>
@@ -127,7 +138,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 13:41 IST
+      Last updated: 2026-03-31 13:42 IST
     </footer>
 
   </div>
@@ -565,6 +576,17 @@ btnSyncAll.addEventListener('click', function () {
     })
     .then(function () { setStatus('All done', 'success'); setSyncing(false); })
     .catch(function (error) { setStatus(friendlyError(error), 'error'); setSyncing(false); });
+});
+
+/* ---- Copy buttons ---- */
+document.querySelectorAll('.copy-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(this.dataset.text);
+    this.textContent = 'Copied';
+    this.classList.add('text-success');
+    var el = this;
+    setTimeout(function () { el.textContent = 'Copy'; el.classList.remove('text-success'); }, 1500);
+  });
 });
 </script>
 </body>
