@@ -107,7 +107,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 13:01 IST
+      Last updated: 2026-03-31 13:04 IST
     </footer>
 
   </div>
@@ -542,13 +542,14 @@ function loadHistory() {
   for (var i = 0; i < history.length; i++) {
     var entry = history[i];
     if (entry.action !== undefined) {
-      addLogRow(entry.name || '-', entry.action, entry.time);
+      var displayName = resolveDeviceName(entry.name, entry.id);
+      addLogRow(displayName, entry.action, entry.time);
     }
   }
 }
 
-loadDevicesJson();
-loadHistory();
+/* Load devices.json first, then render history so names resolve correctly */
+loadDevicesJson().then(loadHistory);
 
 /* ---- Buttons ---- */
 
