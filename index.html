@@ -71,6 +71,7 @@
                 <th>Last synced</th>
                 <th>Last temp</th>
                 <th>Last humidity</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="devices-body"></tbody>
@@ -102,7 +103,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 11:59 IST
+      Last updated: 2026-03-31 12:03 IST
     </footer>
 
   </div>
@@ -281,12 +282,24 @@ function renderDevicesTable() {
       tdHum.innerHTML = '<span class="opacity-30">-</span>';
     }
 
+    var tdAction = document.createElement('td');
+    var btn = document.createElement('button');
+    btn.className = 'btn btn-primary btn-xs';
+    btn.textContent = 'Sync';
+    btn.dataset.deviceId = dev.id;
+    btn.addEventListener('click', function () {
+      var deviceId = this.dataset.deviceId;
+      syncSingleById(deviceId, this);
+    });
+    tdAction.appendChild(btn);
+
     tr.appendChild(tdName);
     tr.appendChild(tdLocation);
     tr.appendChild(tdId);
     tr.appendChild(tdSynced);
     tr.appendChild(tdTemp);
     tr.appendChild(tdHum);
+    tr.appendChild(tdAction);
     devicesBody.appendChild(tr);
   }
 }
@@ -408,6 +421,59 @@ function syncDevice(device) {
       logSync(name, id, 'error');
       if (device.gatt.connected) device.gatt.disconnect();
     });
+}
+
+/* Sync a single device by its ID using getDevices or falling back to picker */
+function syncSingleById(deviceId, btn) {
+  var originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+
+  function restore() {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+
+  if (navigator.bluetooth.getDevices) {
+    navigator.bluetooth.getDevices()
+      .then(function (devices) {
+        var match = null;
+        for (var i = 0; i < devices.length; i++) {
+          if (devices[i].id === deviceId) { match = devices[i]; break; }
+        }
+        if (!match) {
+          setStatus('Device not found in browser permissions — use Add device', 'error');
+          restore();
+          return;
+        }
+        setStatus('Syncing ' + (match.name || match.id) + '\u2026', 'info');
+        return syncDevice(match).then(function () {
+          setStatus('Done', 'success');
+          restore();
+        });
+      })
+      .catch(function (err) {
+        setStatus(friendlyError(err), 'error');
+        restore();
+      });
+  } else {
+    navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [TIME_SERVICE]
+    })
+    .then(function (device) {
+      setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
+      return syncDevice(device);
+    })
+    .then(function () {
+      setStatus('Done', 'success');
+      restore();
+    })
+    .catch(function (err) {
+      setStatus(friendlyError(err), 'error');
+      restore();
+    });
+  }
 }
 
 /* ---- Init ---- */
