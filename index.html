@@ -233,7 +233,7 @@ function updateDeviceRegistry(name, id, extra) {
   if (!devicesRegistry[key]) {
     devicesRegistry[key] = { name: name, id: id, location: '', lastSynced: null, lastTemp: null, lastHumidity: null };
   }
-  if (name) devicesRegistry[key].name = name;
+  if (name && !devicesRegistry[key].name) devicesRegistry[key].name = name;
   if (extra) {
     if (extra.synced) devicesRegistry[key].lastSynced = extra.synced;
     if (extra.temp !== undefined) devicesRegistry[key].lastTemp = extra.temp;
