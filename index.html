@@ -21,37 +21,29 @@
   <div class="max-w-5xl mx-auto p-4 flex flex-col gap-4">
 
     <!-- Top bar -->
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body p-4 gap-3">
-        <!-- Title row -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <img src="clock.webp" alt="LYWSD02" class="w-8 h-8 rounded-lg">
-            <h1 class="text-lg font-bold">LYWSD02 Clock Sync</h1>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="flex items-center gap-1 font-mono text-2xl tabular-nums text-base-content">
-              <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
-              <span class="countdown"><span id="min" style="--value:0;"></span></span>
-            </div>
-            <div class="badge badge-neutral badge-xs font-mono" id="tz-label"></div>
-          </div>
+    <div class="navbar bg-base-100 rounded-box shadow-xl px-4 flex-wrap gap-2">
+      <div class="flex items-center gap-3 flex-1">
+        <img src="clock.webp" alt="LYWSD02" class="w-8 h-8 rounded-lg hidden sm:block">
+        <h1 class="text-lg font-bold">LYWSD02 Clock Sync</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1 font-mono text-2xl tabular-nums text-base-content">
+          <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
+          <span class="countdown"><span id="min" style="--value:0;"></span></span>
         </div>
-        <!-- Actions row -->
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-1 text-xs opacity-60">
-            <span>°C</span>
-            <input type="checkbox" id="unit-toggle" class="toggle toggle-xs toggle-primary">
-            <span>°F</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button id="btn-sync-all" class="btn btn-primary btn-sm min-w-[5rem]">
-              <span id="sync-all-label">Sync all</span>
-              <span id="sync-all-spinner" class="loading loading-ring loading-sm hidden"></span>
-            </button>
-            <button id="btn-add" class="btn btn-secondary btn-outline btn-sm">Add device</button>
-          </div>
+        <div class="badge badge-neutral badge-xs font-mono" id="tz-label"></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 text-xs opacity-60">
+          <span>°C</span>
+          <input type="checkbox" id="unit-toggle" class="toggle toggle-xs toggle-primary">
+          <span>°F</span>
         </div>
+        <button id="btn-sync-all" class="btn btn-primary btn-sm">
+          <span id="sync-all-label">Sync all</span>
+          <span id="sync-all-spinner" class="loading loading-spinner loading-sm hidden"></span>
+        </button>
+        <button id="btn-add" class="btn btn-secondary btn-outline btn-sm">Add device</button>
       </div>
     </div>
 
@@ -109,7 +101,7 @@
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2 space-y-1">
       <p><a href="https://github.com/stefan-bc/Xiaomi-LYWSD02-Clock-sync" target="_blank" rel="noopener" class="link link-hover">Source on GitHub</a> · Based on <a href="https://github.com/h4/lywsd02" target="_blank" rel="noopener" class="link link-hover">lywsd02</a></p>
-      <p>Last updated: 2026-03-31 15:20 IST</p>
+      <p>Last updated: 2026-03-31 15:21 IST</p>
     </footer>
 
   </div>
