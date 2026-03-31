@@ -55,6 +55,7 @@
             <thead class="sticky top-0 bg-base-100 z-10">
               <tr>
                 <th>Name</th>
+                <th>Location</th>
                 <th>ID</th>
                 <th>Last synced</th>
                 <th>Last temp</th>
@@ -90,7 +91,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 11:45 IST
+      Last updated: 2026-03-31 11:50 IST
     </footer>
 
   </div>
@@ -161,36 +162,53 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
-/* ---- Known devices registry (localStorage) ---- */
+/* ---- Known devices (loaded from devices.json, runtime state in memory) ---- */
 
-function getDevicesRegistry() {
-  return JSON.parse(localStorage.getItem('lywsd02_devices') || '{}');
+var devicesRegistry = {};
+
+/* Fetch devices.json from the repo and merge with any runtime state */
+function loadDevicesJson() {
+  return fetch('devices.json')
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      var list = data.devices || [];
+      for (var i = 0; i < list.length; i++) {
+        var dev = list[i];
+        var key = dev.id || dev.name;
+        if (!devicesRegistry[key]) {
+          devicesRegistry[key] = {
+            name: dev.name || '',
+            id: dev.id || '',
+            location: dev.location || '',
+            lastSynced: null,
+            lastTemp: null,
+            lastHumidity: null
+          };
+        }
+      }
+      renderDevicesTable();
+    })
+    .catch(function () {});
 }
 
-function saveDevicesRegistry(registry) {
-  localStorage.setItem('lywsd02_devices', JSON.stringify(registry));
-}
-
-/* Update a device entry in the registry (keyed by ID) */
+/* Update runtime state after a sync or reading */
 function updateDeviceRegistry(name, id, extra) {
-  var registry = getDevicesRegistry();
-  if (!registry[id]) {
-    registry[id] = { name: name, id: id, lastSynced: null, lastTemp: null, lastHumidity: null };
+  var key = id || name;
+  if (!devicesRegistry[key]) {
+    devicesRegistry[key] = { name: name, id: id, location: '', lastSynced: null, lastTemp: null, lastHumidity: null };
   }
-  if (name) registry[id].name = name;
+  if (name) devicesRegistry[key].name = name;
   if (extra) {
-    if (extra.synced) registry[id].lastSynced = extra.synced;
-    if (extra.temp !== undefined) registry[id].lastTemp = extra.temp;
-    if (extra.humidity !== undefined) registry[id].lastHumidity = extra.humidity;
+    if (extra.synced) devicesRegistry[key].lastSynced = extra.synced;
+    if (extra.temp !== undefined) devicesRegistry[key].lastTemp = extra.temp;
+    if (extra.humidity !== undefined) devicesRegistry[key].lastHumidity = extra.humidity;
   }
-  saveDevicesRegistry(registry);
   renderDevicesTable();
 }
 
-/* Render the known devices table from registry */
+/* Render the known devices table */
 function renderDevicesTable() {
-  var registry = getDevicesRegistry();
-  var keys = Object.keys(registry);
+  var keys = Object.keys(devicesRegistry);
   if (keys.length === 0) {
     devicesEmpty.classList.remove('hidden');
     devicesTableWrap.classList.add('hidden');
@@ -201,11 +219,14 @@ function renderDevicesTable() {
   devicesBody.innerHTML = '';
 
   for (var i = 0; i < keys.length; i++) {
-    var dev = registry[keys[i]];
+    var dev = devicesRegistry[keys[i]];
     var tr = document.createElement('tr');
 
     var tdName = document.createElement('td');
     tdName.textContent = dev.name || '-';
+
+    var tdLocation = document.createElement('td');
+    tdLocation.textContent = dev.location || '-';
 
     var tdId = document.createElement('td');
     tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem]';
@@ -224,6 +245,7 @@ function renderDevicesTable() {
     tdHum.textContent = dev.lastHumidity !== null ? dev.lastHumidity + ' %' : '-';
 
     tr.appendChild(tdName);
+    tr.appendChild(tdLocation);
     tr.appendChild(tdId);
     tr.appendChild(tdSynced);
     tr.appendChild(tdTemp);
@@ -363,7 +385,7 @@ function loadHistory() {
   }
 }
 
-renderDevicesTable();
+loadDevicesJson();
 loadHistory();
 
 /* ---- Button handlers ---- */
