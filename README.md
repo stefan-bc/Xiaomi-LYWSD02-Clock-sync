@@ -21,6 +21,10 @@ Use it directly in a Chromium-based browser. No install needed.
 3. The clock's time is synced and its temperature/humidity is read
 4. For subsequent syncs, click **Sync all** - it reconnects to all previously paired clocks without the picker
 
+| Pairing | Syncing | Done |
+|---|---|---|
+| ![Pairing](1.png) | ![Syncing](2.png) | ![Done](3.png) |
+
 ### Requirements
 
 - Chromium-based browser
