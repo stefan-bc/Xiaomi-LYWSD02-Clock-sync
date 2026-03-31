@@ -4,7 +4,7 @@
 
 Sync time and read temperature/humidity from Xiaomi LYWSD02 (LYWSD02MMC) BLE thermometer clocks.
 
-Two methods — pick whichever suits you.
+Two methods - pick whichever suits you.
 
 ---
 
@@ -17,9 +17,9 @@ Use it directly in a Chromium-based browser. No install needed.
 ### How it works
 
 1. Open the page in **Chrome, Edge, or Opera** (Web Bluetooth is not supported in Firefox/Safari)
-2. Click **Add device** — Chrome will show a Bluetooth picker, select your clock
+2. Click **Add device** - Chrome will show a Bluetooth picker, select your clock
 3. The clock's time is synced and its temperature/humidity is read
-4. For subsequent syncs, click **Sync all** — it reconnects to all previously paired clocks without the picker
+4. For subsequent syncs, click **Sync all** - it reconnects to all previously paired clocks without the picker
 
 ### Requirements
 
@@ -29,13 +29,13 @@ Use it directly in a Chromium-based browser. No install needed.
 ### Limitations
 
 - Each clock must be paired once via the picker (browser security requirement)
-- Device IDs are browser-specific — pairing doesn't carry across browsers or profiles
+- Device IDs are browser-specific - pairing doesn't carry across browsers or profiles
 
 ---
 
 ## Method 2: CLI tool (terminal)
 
-Runs from terminal on macOS or Linux. Auto-discovers all LYWSD02 clocks in BLE range — no pairing needed. Just run it.
+Runs from terminal on macOS or Linux. Auto-discovers all LYWSD02 clocks in BLE range - no pairing needed. Just run it.
 
 ### Setup (one time)
 
@@ -79,7 +79,7 @@ If you get **"Bluetooth device is turned off"** on macOS:
 
 | Characteristic | UUID | Format |
 |---|---|---|
-| Time service | `ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6` | — |
+| Time service | `ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6` | - |
 | Time write | `ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6` | 5 bytes: uint32 LE unix timestamp + int8 TZ offset hours |
 | Unit write | `ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6` | 1 byte: 0 = °C, 1 = °F |
 | Temp/humidity | `ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6` | Notification: int16 LE temp (÷100) + uint8 humidity % |
@@ -88,5 +88,5 @@ If you get **"Bluetooth device is turned off"** on macOS:
 
 Based on the [lywsd02](https://github.com/h4/lywsd02) Python client.
 
-- [Harold De Armas](https://github.com/dearmash) — C/F unit support
+- [Harold De Armas](https://github.com/dearmash) - C/F unit support
 - [Mitja Pugelj](https://www.linkedin.com/in/mitjapugelj)

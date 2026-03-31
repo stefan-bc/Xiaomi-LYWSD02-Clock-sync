@@ -103,13 +103,13 @@ async def sync_all():
         t, h = await sync_clock(d)
         if t is False:
             fail += 1
-            print(f'  {R}✗{X} {d.name}  {D}— could not connect (out of range or busy){X}')
+            print(f'  {R}✗{X} {d.name}  {D}-could not connect (out of range or busy){X}')
         elif t is not None:
             ok += 1
-            print(f'  {G}✓{X} {d.name}  {Y}{t:.1f}°C{X}  {C}{h}%{X}  {D}— time synced, sensor read{X}')
+            print(f'  {G}✓{X} {d.name}  {Y}{t:.1f}°C{X}  {C}{h}%{X}  {D}-time synced, sensor read{X}')
         else:
             ok += 1
-            print(f'  {G}✓{X} {d.name}  {D}— time synced, no sensor data{X}')
+            print(f'  {G}✓{X} {d.name}  {D}-time synced, no sensor data{X}')
 
     print(f'\n  {B}Result:{X} {G}{ok} synced{X}', end='')
     if fail:

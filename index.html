@@ -104,7 +104,7 @@
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2 space-y-1">
       <p><a href="https://github.com/stefan-bc/Xiaomi-LYWSD02-Clock-sync" target="_blank" rel="noopener" class="link link-hover">Source on GitHub</a> · Based on <a href="https://github.com/h4/lywsd02" target="_blank" rel="noopener" class="link link-hover">lywsd02</a></p>
-      <p>Last updated: 2026-03-31 14:39 IST
+      <p>Last updated: 2026-03-31 14:41 IST
     </footer>
 
   </div>
@@ -426,7 +426,10 @@ btnSyncAll.addEventListener('click', function () {
 
       var total = pairedDevices.length;
       var done = 0;
+      var synced = 0;
       setStatus('Syncing 0/' + total + '\u2026', 'info');
+
+      var countBefore = logBody.querySelectorAll('.badge-success').length;
 
       var promises = pairedDevices.map(function (device) {
         return waitAndSync(device).then(function () {
@@ -435,9 +438,20 @@ btnSyncAll.addEventListener('click', function () {
         });
       });
 
-      return Promise.all(promises);
+      return Promise.all(promises).then(function () {
+        var countAfter = logBody.querySelectorAll('.badge-success').length;
+        synced = countAfter - countBefore;
+        return synced;
+      });
     })
-    .then(function () { setStatus('All done', 'success'); setSyncing(false); })
+    .then(function (synced) {
+      if (synced > 0) {
+        setStatus(synced + ' device(s) synced', 'success');
+      } else {
+        setStatus('No devices could be reached', 'error');
+      }
+      setSyncing(false);
+    })
     .catch(function (error) { setStatus(friendlyError(error), 'error'); setSyncing(false); });
 });
 
