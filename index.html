@@ -501,8 +501,10 @@ function syncSingleById(deviceId, btn) {
     btn.textContent = originalText;
   }
 
+  var friendlyName = resolveDeviceName('', deviceId);
+
   if (!navigator.bluetooth.getDevices) {
-    /* No getDevices — fall back to picker */
+    setStatus('Select ' + friendlyName + ' from picker', 'info');
     navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
       .then(function (device) { return syncDevice(device); })
       .then(function () { setStatus('Done', 'success'); restore(); })
@@ -510,7 +512,6 @@ function syncSingleById(deviceId, btn) {
     return;
   }
 
-  var friendlyName = resolveDeviceName('', deviceId);
   setStatus('Connecting to ' + friendlyName + '\u2026', 'info');
 
   navigator.bluetooth.getDevices()
@@ -520,12 +521,15 @@ function syncSingleById(deviceId, btn) {
         if (devices[i].id === deviceId) { match = devices[i]; break; }
       }
       if (!match) {
-        setStatus('Not yet paired \u2014 select from picker', 'info');
+        setStatus('Select ' + friendlyName + ' from picker', 'info');
         return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
           .then(function (device) { return syncDevice(device); })
           .then(function () { setStatus('Done', 'success'); });
       }
-      return waitAndSync(match).then(function () { setStatus('Done', 'success'); });
+
+      /* Try direct connect first — works when device is nearby and idle */
+      return syncDevice(match)
+        .then(function () { setStatus('Done', 'success'); });
     })
     .then(restore)
     .catch(function (err) { setStatus(friendlyError(err), 'error'); restore(); });
