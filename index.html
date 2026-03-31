@@ -73,7 +73,6 @@
                 <th>Last synced</th>
                 <th>Last temp</th>
                 <th>Last humidity</th>
-                <th></th>
               </tr>
             </thead>
             <tbody id="devices-body"></tbody>
@@ -107,7 +106,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 13:09 IST
+      Last updated: 2026-03-31 13:19 IST
     </footer>
 
   </div>
@@ -326,23 +325,12 @@ function renderDevicesTable() {
       tdHum.innerHTML = '<span class="opacity-20">\u2014</span>';
     }
 
-    var tdAction = document.createElement('td');
-    var btn = document.createElement('button');
-    btn.className = 'badge badge-primary badge-sm cursor-pointer hover:brightness-125';
-    btn.textContent = 'Sync';
-    btn.dataset.deviceId = dev.id;
-    btn.addEventListener('click', function () {
-      syncSingleById(this.dataset.deviceId, this);
-    });
-    tdAction.appendChild(btn);
-
     tr.appendChild(tdName);
     tr.appendChild(tdLocation);
     tr.appendChild(tdId);
     tr.appendChild(tdSynced);
     tr.appendChild(tdTemp);
     tr.appendChild(tdHum);
-    tr.appendChild(tdAction);
     devicesBody.appendChild(tr);
   }
 }
@@ -494,51 +482,6 @@ function waitAndSync(device) {
         syncDevice(device).then(finish).catch(finish);
       });
   });
-}
-
-/* Sync a single device by ID */
-function syncSingleById(deviceId, btn) {
-  var originalText = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
-
-  function restore() {
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-
-  var friendlyName = resolveDeviceName('', deviceId);
-
-  if (!navigator.bluetooth.getDevices) {
-    setStatus('Select ' + friendlyName + ' from picker', 'info');
-    navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
-      .then(function (device) { return syncDevice(device); })
-      .then(function () { setStatus('Done', 'success'); restore(); })
-      .catch(function (err) { setStatus(friendlyError(err), 'error'); restore(); });
-    return;
-  }
-
-  setStatus('Connecting to ' + friendlyName + '\u2026', 'info');
-
-  navigator.bluetooth.getDevices()
-    .then(function (devices) {
-      var match = null;
-      for (var i = 0; i < devices.length; i++) {
-        if (devices[i].id === deviceId) { match = devices[i]; break; }
-      }
-      if (!match) {
-        setStatus('Select ' + friendlyName + ' from picker', 'info');
-        return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
-          .then(function (device) { return syncDevice(device); })
-          .then(function () { setStatus('Done', 'success'); });
-      }
-
-      /* Try direct connect first — works when device is nearby and idle */
-      return syncDevice(match)
-        .then(function () { setStatus('Done', 'success'); });
-    })
-    .then(restore)
-    .catch(function (err) { setStatus(friendlyError(err), 'error'); restore(); });
 }
 
 /* ---- Init ---- */
