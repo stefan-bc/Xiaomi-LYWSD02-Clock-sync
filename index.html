@@ -107,7 +107,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 13:06 IST
+      Last updated: 2026-03-31 13:07 IST
     </footer>
 
   </div>
@@ -204,11 +204,18 @@ function setSyncing(active) {
 
 var devicesRegistry = {};
 
-/* Look up the friendly name for a device ID from the registry */
+/* Look up the friendly name for a device ID from the registry.
+   JSON is the authority — always prefer the registry name. */
 function resolveDeviceName(bleDeviceName, id) {
-  var key = id || bleDeviceName;
-  if (devicesRegistry[key] && devicesRegistry[key].name) {
-    return devicesRegistry[key].name;
+  /* Try direct ID lookup */
+  if (id && devicesRegistry[id] && devicesRegistry[id].name) {
+    return devicesRegistry[id].name;
+  }
+  /* Search all entries in case ID format differs */
+  var keys = Object.keys(devicesRegistry);
+  for (var i = 0; i < keys.length; i++) {
+    var dev = devicesRegistry[keys[i]];
+    if (id && dev.id === id) return dev.name || bleDeviceName || id;
   }
   return bleDeviceName || id || '-';
 }
