@@ -69,7 +69,6 @@
               <tr>
                 <th>Name</th>
                 <th>Location</th>
-                <th>ID</th>
                 <th>Last synced</th>
                 <th>Last temp</th>
                 <th>Last humidity</th>
@@ -107,7 +106,7 @@
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2 space-y-1">
       <p><a href="sync.py" download class="link link-hover">sync.py</a> — CLI tool (requires <code>pip3 install bleak</code>)</p>
-      <p>Last updated: 2026-03-31 13:25 IST
+      <p>Last updated: 2026-03-31 13:27 IST
     </footer>
 
   </div>
@@ -217,7 +216,7 @@ function resolveDeviceName(bleDeviceName, id) {
     var dev = devicesRegistry[keys[i]];
     if (id && dev.id === id) return dev.name || bleDeviceName || id;
   }
-  return bleDeviceName || id || '-';
+  return bleDeviceName || 'Unknown device';
 }
 
 function loadDevicesJson() {
@@ -298,10 +297,6 @@ function renderDevicesTable() {
       tdLocation.innerHTML = '<span class="opacity-20">\u2014</span>';
     }
 
-    var tdId = document.createElement('td');
-    tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem] opacity-50';
-    tdId.textContent = dev.id || '-';
-
     var tdSynced = document.createElement('td');
     tdSynced.className = 'font-mono text-sm whitespace-nowrap';
     if (dev.lastSynced) {
@@ -328,7 +323,6 @@ function renderDevicesTable() {
 
     tr.appendChild(tdName);
     tr.appendChild(tdLocation);
-    tr.appendChild(tdId);
     tr.appendChild(tdSynced);
     tr.appendChild(tdTemp);
     tr.appendChild(tdHum);
