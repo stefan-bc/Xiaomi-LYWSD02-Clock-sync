@@ -85,29 +85,39 @@ async def scan(save=False):
 
 
 async def sync_all():
-    print(f'\n  {B}LYWSD02 Sync{X}  {D}{datetime.now().strftime("%H:%M")}{X}\n  {D}Scanning...{X}')
+    tz = time.strftime('%Z')
+    now = datetime.now().strftime('%H:%M')
+    print(f'\n  {B}LYWSD02 Clock Sync{X}')
+    print(f'  {D}Syncs time and reads temp/humidity from all Xiaomi clocks in BLE range.{X}')
+    print(f'  {D}Timezone: {tz} | Time: {now}{X}')
+    print(f'\n  {D}Scanning for devices (10s)...{X}\n')
     clocks = await find_clocks()
     if not clocks:
-        print(f'  {R}None found.{X}\n')
+        print(f'  {R}No LYWSD02 clocks found. Make sure Bluetooth is on and clocks are nearby.{X}\n')
         return
+
+    print(f'  Found {B}{len(clocks)}{X} clock(s). Syncing time and reading sensors...\n')
 
     ok = fail = 0
     for d in clocks:
         t, h = await sync_clock(d)
         if t is False:
             fail += 1
-            print(f'  {R}✗{X} {d.name}')
+            print(f'  {R}✗{X} {d.name}  {D}— could not connect (out of range or busy){X}')
         elif t is not None:
             ok += 1
-            print(f'  {G}✓{X} {d.name}  {Y}{t:.1f}°C{X}  {C}{h}%{X}')
+            print(f'  {G}✓{X} {d.name}  {Y}{t:.1f}°C{X}  {C}{h}%{X}  {D}— time synced, sensor read{X}')
         else:
             ok += 1
-            print(f'  {G}✓{X} {d.name}')
+            print(f'  {G}✓{X} {d.name}  {D}— time synced, no sensor data{X}')
 
-    print(f'\n  {G}{ok}{X}/{ok+fail}', end='')
+    print(f'\n  {B}Result:{X} {G}{ok} synced{X}', end='')
     if fail:
-        print(f'  {R}({fail} failed){X}', end='')
-    print('\n')
+        print(f', {R}{fail} failed{X}', end='')
+    print(f' out of {ok+fail} found')
+    if fail:
+        print(f'  {D}Tip: failed clocks were too far away or busy. Run again to retry.{X}')
+    print()
 
 
 if __name__ == '__main__':
