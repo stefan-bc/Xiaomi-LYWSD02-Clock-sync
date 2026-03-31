@@ -22,7 +22,8 @@
 
     <!-- Top bar -->
     <div class="navbar bg-base-100 rounded-box shadow-xl px-6">
-      <div class="navbar-start">
+      <div class="navbar-start gap-3">
+        <img src="clock.webp" alt="LYWSD02" class="w-10 h-10 rounded-lg">
         <h1 class="text-lg font-bold">LYWSD02 Clock Sync</h1>
       </div>
       <div class="navbar-center">
@@ -103,7 +104,7 @@
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2 space-y-1">
       <p><a href="https://github.com/stefan-bc/Xiaomi-LYWSD02-Clock-sync" target="_blank" rel="noopener" class="link link-hover">Source on GitHub</a> · Based on <a href="https://github.com/h4/lywsd02" target="_blank" rel="noopener" class="link link-hover">lywsd02</a></p>
-      <p>Last updated: 2026-03-31 14:25 IST
+      <p>Last updated: 2026-03-31 14:28 IST
     </footer>
 
   </div>
@@ -210,7 +211,6 @@ function showLogTable() {
   btnClearLog.classList.remove('hidden');
 }
 
-/* Add a row to the sync log. Temp/humidity are optional. */
 function addLogRow(name, id, status, temp, humidity, time) {
   showLogTable();
   var tr = document.createElement('tr');
@@ -259,23 +259,19 @@ function addLogRow(name, id, status, temp, humidity, time) {
   logBody.insertBefore(tr, logBody.firstChild);
 }
 
-/* Log a sync event (time written to device) */
 function logSync(bleName, id, status) {
   var now = new Date();
   addLogRow(bleName, id, status, null, null, now);
   saveToHistory({ name: bleName, id: id, action: status || 'synced', time: now.toISOString() });
 }
 
-/* Update the most recent log row for this device with sensor data */
 function logReading(bleName, id, tempC, humidity) {
-  /* Find the most recent row for this device and update temp/humidity */
   var rows = logBody.querySelectorAll('tr');
   for (var i = 0; i < rows.length; i++) {
     var cells = rows[i].querySelectorAll('td');
     if (cells[1] && cells[1].textContent === id) {
       cells[3].innerHTML = '<span class="text-warning">' + tempC.toFixed(1) + ' °C</span>';
       cells[4].innerHTML = '<span class="text-accent">' + humidity + ' %</span>';
-      /* Also update stored history */
       var history = getHistory();
       for (var j = history.length - 1; j >= 0; j--) {
         if (history[j].id === id && !history[j].temp) {
@@ -290,7 +286,6 @@ function logReading(bleName, id, tempC, humidity) {
   }
 }
 
-/* Clear log */
 btnClearLog.addEventListener('click', function () {
   localStorage.removeItem('lywsd02_history');
   logBody.innerHTML = '';
@@ -343,7 +338,6 @@ function syncDevice(device) {
           return char.writeValue(buildTimePayload());
         })
         .then(function () {
-          /* Write temperature unit (0 = Celsius, 1 = Fahrenheit) */
           var unitValue = unitToggle.checked ? 1 : 0;
           var unitBuf = new ArrayBuffer(1);
           new DataView(unitBuf).setUint8(0, unitValue);
