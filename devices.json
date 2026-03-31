@@ -1,27 +1,27 @@
 {
   "devices": [
     {
-      "name": "LYWSD02MMC",
+      "name": "Clock 1",
       "id": "juBZHjLFZLvs9pqAQWrc1A==",
       "location": ""
     },
     {
-      "name": "LYWSD02MMC",
+      "name": "Clock 2",
       "id": "m4lWvb1XFt6c9Y8dkv4lsA==",
       "location": ""
     },
     {
-      "name": "LYWSD02MMC",
+      "name": "Clock 3",
       "id": "BoDcoFEsO/XoY9nsWWiwrg==",
       "location": ""
     },
     {
-      "name": "LYWSD02MMC",
+      "name": "Clock 4",
       "id": "V/H2Yig6xnIm9twOGldTag==",
       "location": ""
     },
     {
-      "name": "LYWSD02MMC",
+      "name": "Clock 5",
       "id": "YobFyAfDun0GLnfPcDVx4g==",
       "location": ""
     }
