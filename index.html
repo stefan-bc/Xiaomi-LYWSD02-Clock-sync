@@ -442,9 +442,23 @@ function syncSingleById(deviceId, btn) {
           if (devices[i].id === deviceId) { match = devices[i]; break; }
         }
         if (!match) {
-          setStatus('Device not found in browser permissions — use Add device', 'error');
-          restore();
-          return;
+          setStatus('Not yet paired — select it from the picker', 'info');
+          return navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [TIME_SERVICE]
+          })
+          .then(function (device) {
+            setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
+            return syncDevice(device);
+          })
+          .then(function () {
+            setStatus('Done', 'success');
+            restore();
+          })
+          .catch(function (err) {
+            setStatus(friendlyError(err), 'error');
+            restore();
+          });
         }
         setStatus('Syncing ' + (match.name || match.id) + '\u2026', 'info');
         return syncDevice(match).then(function () {
