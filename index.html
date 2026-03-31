@@ -18,52 +18,82 @@
     <span>Web Bluetooth requires a Chromium-based browser.</span>
   </div>
 
-  <div class="card bg-base-100 shadow-xl w-full max-w-xs">
-    <div class="card-body items-center text-center gap-5">
+  <div class="flex flex-col sm:flex-row items-start justify-center gap-4 w-full max-w-3xl">
 
-      <h2 class="card-title">LYWSD02 Clock Sync</h2>
-
-      <!-- Live clock using DaisyUI countdown -->
-      <div class="flex items-center justify-center gap-1 font-mono text-5xl tabular-nums">
-        <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
-        <span class="countdown"><span id="min" style="--value:0;"></span></span>:
-        <span class="countdown text-3xl opacity-40"><span id="sec" style="--value:0;"></span></span>
+    <!-- Sync log card (left) -->
+    <div id="log-card" class="card bg-base-100 shadow-xl w-full sm:w-72 hidden order-2 sm:order-1">
+      <div class="card-body p-5 gap-3">
+        <h3 class="card-title text-sm">Sync log</h3>
+        <div class="overflow-x-auto">
+          <table class="table table-xs">
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Synced at</th>
+              </tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+          </table>
+        </div>
       </div>
-
-      <!-- Timezone badge -->
-      <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
-
-      <!-- Sync button -->
-      <div class="card-actions w-full">
-        <button id="btn-time" class="btn btn-primary btn-block">Sync time</button>
-      </div>
-
-      <!-- Status alert -->
-      <div id="status-alert" role="alert" class="alert hidden w-full">
-        <span id="status-text"></span>
-      </div>
-
-      <!-- Sync log, shown after first successful sync -->
-      <div id="log-section" class="w-full hidden">
-        <div class="divider text-xs opacity-50 my-1">Sync log</div>
-        <table class="table table-xs">
-          <thead>
-            <tr>
-              <th>Device</th>
-              <th>Synced at</th>
-            </tr>
-          </thead>
-          <tbody id="log-body"></tbody>
-        </table>
-      </div>
-
     </div>
+
+    <!-- Main sync card (centre) -->
+    <div class="card bg-base-100 shadow-xl w-full max-w-xs order-1 sm:order-2">
+      <div class="card-body items-center text-center gap-5">
+
+        <h2 class="card-title">LYWSD02 Clock Sync</h2>
+
+        <!-- Live clock using DaisyUI countdown -->
+        <div class="flex items-center justify-center gap-1 font-mono text-5xl tabular-nums">
+          <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
+          <span class="countdown"><span id="min" style="--value:0;"></span></span>:
+          <span class="countdown text-3xl opacity-40"><span id="sec" style="--value:0;"></span></span>
+        </div>
+
+        <!-- Timezone badge -->
+        <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
+
+        <!-- Sync button -->
+        <div class="card-actions w-full">
+          <button id="btn-time" class="btn btn-primary btn-block">Sync time</button>
+        </div>
+
+        <!-- Status alert -->
+        <div id="status-alert" role="alert" class="alert hidden w-full">
+          <span id="status-text"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Readings card (right) -->
+    <div id="readings-card" class="card bg-base-100 shadow-xl w-full sm:w-72 hidden order-3">
+      <div class="card-body p-5 gap-3">
+        <h3 class="card-title text-sm">Readings</h3>
+        <div class="overflow-x-auto">
+          <table class="table table-xs">
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Temp</th>
+                <th>Humidity</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="readings-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 <script>
-var TIME_SERVICE = 'ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6';
-var TIME_CHAR    = 'ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6';
-var UNIT_CHAR    = 'ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6';
+var TIME_SERVICE  = 'ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6';
+var TIME_CHAR     = 'ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6';
+var UNIT_CHAR     = 'ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6';
+var TEMP_HUM_CHAR = 'ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6';
 
 var hrsEl = document.getElementById('hrs');
 var minEl = document.getElementById('min');
@@ -72,8 +102,10 @@ var tzLabel = document.getElementById('tz-label');
 var btnTime = document.getElementById('btn-time');
 var statusAlert = document.getElementById('status-alert');
 var statusText = document.getElementById('status-text');
-var logSection = document.getElementById('log-section');
+var logCard = document.getElementById('log-card');
 var logBody = document.getElementById('log-body');
+var readingsCard = document.getElementById('readings-card');
+var readingsBody = document.getElementById('readings-body');
 
 if (!('bluetooth' in navigator)) {
   document.getElementById('ble-warning').classList.remove('hidden');
@@ -84,12 +116,10 @@ function getTimezoneOffsetHours() {
   return -(new Date().getTimezoneOffset() / 60);
 }
 
-/* Show timezone in the badge */
 var h = getTimezoneOffsetHours();
 var sign = h >= 0 ? '+' : '';
 tzLabel.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + ' UTC' + sign + h;
 
-/* Tick the DaisyUI countdown spans */
 function updateClock() {
   var now = new Date();
   hrsEl.style.setProperty('--value', now.getHours());
@@ -99,7 +129,6 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
-/* Show a DaisyUI alert for status feedback */
 function setStatus(message, type) {
   statusAlert.className = 'alert w-full';
   if (type === 'success') statusAlert.classList.add('alert-success');
@@ -109,25 +138,85 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
-/* Add a row to the sync log table */
+/* Add a row to the sync log */
 function logSync(deviceName) {
-  logSection.classList.remove('hidden');
+  logCard.classList.remove('hidden');
   var tr = document.createElement('tr');
+
   var tdName = document.createElement('td');
+  var code = document.createElement('code');
+  code.className = 'select-all cursor-pointer';
+  code.textContent = deviceName || 'Unknown';
+  tdName.appendChild(code);
+
   var tdTime = document.createElement('td');
-  tdName.textContent = deviceName || 'Unknown';
-  tdTime.classList.add('font-mono');
+  tdTime.className = 'font-mono text-xs opacity-70';
   tdTime.textContent = new Date().toISOString();
-  tr.insertBefore(tdTime, tr.firstChild);
-  tr.insertBefore(tdName, tr.firstChild);
-  /* Newest on top */
+
+  tr.appendChild(tdName);
+  tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
 }
 
-/* Connect and return the requested characteristic */
-var lastDeviceName = '';
+/* Add a row to the readings log */
+function logReading(deviceName, tempC, humidity) {
+  readingsCard.classList.remove('hidden');
+  var tr = document.createElement('tr');
 
-function getCharacteristic(charUuid) {
+  var tdName = document.createElement('td');
+  var code = document.createElement('code');
+  code.className = 'select-all cursor-pointer';
+  code.textContent = deviceName || 'Unknown';
+  tdName.appendChild(code);
+
+  var tdTemp = document.createElement('td');
+  tdTemp.className = 'font-mono';
+  tdTemp.textContent = tempC.toFixed(1) + ' °C';
+
+  var tdHum = document.createElement('td');
+  tdHum.className = 'font-mono';
+  tdHum.textContent = humidity + ' %';
+
+  var tdTime = document.createElement('td');
+  tdTime.className = 'font-mono text-xs opacity-70';
+  tdTime.textContent = new Date().toISOString();
+
+  tr.appendChild(tdName);
+  tr.appendChild(tdTemp);
+  tr.appendChild(tdHum);
+  tr.appendChild(tdTime);
+  readingsBody.insertBefore(tr, readingsBody.firstChild);
+}
+
+/* Read temperature and humidity via BLE notification.
+   The LYWSD02 sends data on characteristic ebe0ccc1:
+   bytes 0-1 = int16 LE temperature in hundredths of °C
+   byte 2    = uint8 humidity % */
+function readTempHumidity(service, deviceName) {
+  return service.getCharacteristic(TEMP_HUM_CHAR)
+    .then(function (char) {
+      return new Promise(function (resolve) {
+        char.addEventListener('characteristicvaluechanged', function handler(event) {
+          char.removeEventListener('characteristicvaluechanged', handler);
+          var data = event.target.value;
+          var tempRaw = data.getInt16(0, true);
+          var tempC = tempRaw / 100;
+          var humidity = data.getUint8(2);
+          logReading(deviceName, tempC, humidity);
+          char.stopNotifications().then(resolve).catch(resolve);
+        });
+        char.startNotifications();
+      });
+    })
+    .catch(function () {
+      /* Silently skip if temp characteristic is unavailable */
+    });
+}
+
+var lastDeviceName = '';
+var lastService = null;
+
+function connectAndGetService() {
   return navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
     optionalServices: [TIME_SERVICE]
@@ -142,7 +231,8 @@ function getCharacteristic(charUuid) {
     return server.getPrimaryService(TIME_SERVICE);
   })
   .then(function (service) {
-    return service.getCharacteristic(charUuid);
+    lastService = service;
+    return service;
   });
 }
 
@@ -157,14 +247,21 @@ function buildTimePayload() {
 }
 
 btnTime.addEventListener('click', function () {
-  getCharacteristic(TIME_CHAR)
-    .then(function (characteristic) {
+  connectAndGetService()
+    .then(function (service) {
       setStatus('Writing time\u2026', 'info');
-      return characteristic.writeValue(buildTimePayload());
+      return service.getCharacteristic(TIME_CHAR)
+        .then(function (char) {
+          return char.writeValue(buildTimePayload());
+        })
+        .then(function () {
+          setStatus('Time synced — reading sensor\u2026', 'success');
+          logSync(lastDeviceName);
+          return readTempHumidity(service, lastDeviceName);
+        });
     })
     .then(function () {
-      setStatus('Time synced', 'success');
-      logSync(lastDeviceName);
+      setStatus('Done', 'success');
     })
     .catch(function (error) {
       setStatus(String(error), 'error');
