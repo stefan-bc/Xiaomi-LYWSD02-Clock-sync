@@ -1,5 +1,7 @@
 # LYWSD02 Clock Sync
 
+<img src="clock.webp" alt="LYWSD02 Clock" width="200">
+
 Web and CLI tool to sync time and read temperature/humidity from Xiaomi LYWSD02 (LYWSD02MMC) BLE thermometer clocks.
 
 ## Web app
