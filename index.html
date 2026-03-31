@@ -6,175 +6,93 @@
   <title>LYWSD02 Clock Sync</title>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Pulse animation for the colon separator in the clock */
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-    .colon-blink { animation: blink 1s step-end infinite; }
-  </style>
 </head>
-<body class="min-h-screen bg-base-300 flex flex-col items-center justify-center p-4">
+<body class="min-h-screen bg-base-300 flex items-center justify-center p-4">
 
   <!-- Chromium-only warning -->
-  <div id="ble-warning" class="alert alert-warning max-w-sm mb-4 text-sm hidden">
-    <svg xmlns="http://www.w3.org/2000/svg" class="shrink-0 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <div id="ble-warning" role="alert" class="alert alert-warning fixed top-4 left-4 right-4 max-w-sm mx-auto z-50 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
-    <span>Web Bluetooth requires a Chromium-based browser (Chrome, Edge, Opera).</span>
+    <span>Web Bluetooth requires a Chromium-based browser.</span>
   </div>
 
-  <div class="card bg-base-200 shadow-2xl w-full max-w-sm border border-base-content/5">
-    <div class="card-body gap-0 p-6">
+  <div class="card bg-base-100 shadow-xl w-full max-w-xs">
+    <div class="card-body items-center text-center gap-5">
 
-      <!-- Header with Bluetooth icon -->
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold leading-tight">LYWSD02 Clock Sync</h1>
-          <p class="text-xs opacity-40">Xiaomi Mijia BLE Thermometer</p>
-        </div>
+      <!-- Title -->
+      <h2 class="card-title">LYWSD02 Clock Sync</h2>
+
+      <!-- Live clock using DaisyUI countdown component -->
+      <div class="flex items-center justify-center gap-1 font-mono text-5xl tabular-nums">
+        <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
+        <span class="countdown"><span id="min" style="--value:0;"></span></span>:
+        <span class="countdown text-3xl opacity-40"><span id="sec" style="--value:0;"></span></span>
       </div>
 
-      <!-- Time Sync section -->
-      <div class="bg-base-300 rounded-xl p-4 mb-3">
-        <div class="flex items-center gap-2 mb-3">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-          </svg>
-          <h2 class="text-sm font-semibold uppercase tracking-wider opacity-50">Time Sync</h2>
-        </div>
+      <!-- Timezone as a DaisyUI badge -->
+      <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
 
-        <!-- Live clock display -->
-        <div class="text-center mb-4">
-          <div id="clock" class="font-mono text-4xl font-bold tabular-nums tracking-tight"></div>
-          <div id="tz-label" class="text-xs opacity-40 mt-1 font-mono"></div>
-        </div>
-
-        <button id="btn-time" class="btn btn-primary btn-sm btn-block">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
-          Sync time
-        </button>
+      <!-- Sync button -->
+      <div class="card-actions w-full">
+        <button id="btn-time" class="btn btn-primary btn-block">Sync time</button>
       </div>
 
-      <!-- Unit section -->
-      <div class="bg-base-300 rounded-xl p-4 mb-4">
-        <div class="flex items-center gap-2 mb-3">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-          </svg>
-          <h2 class="text-sm font-semibold uppercase tracking-wider opacity-50">Unit</h2>
-        </div>
-
-        <div class="flex items-center justify-center gap-4 mb-4">
-          <span id="label-c" class="text-sm font-semibold transition-opacity">°C</span>
-          <input type="checkbox" id="unit-toggle" class="toggle toggle-primary">
-          <span id="label-f" class="text-sm font-semibold opacity-40 transition-opacity">°F</span>
-        </div>
-
-        <button id="btn-unit" class="btn btn-primary btn-sm btn-block">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-          </svg>
-          Set unit
-        </button>
-      </div>
-
-      <!-- Status log -->
-      <div id="status-wrap" class="rounded-lg px-3 py-2 text-center transition-colors duration-200 bg-base-300">
-        <span id="status" class="text-xs opacity-50">Ready</span>
+      <!-- Status toast area -->
+      <div id="status-alert" role="alert" class="alert hidden w-full">
+        <span id="status-text"></span>
       </div>
 
     </div>
   </div>
 
-  <!-- Attribution footer -->
-  <footer class="mt-6 text-center text-xs opacity-30 space-y-0.5 max-w-sm">
-    <p>Based on <a href="https://github.com/h4/lywsd02" target="_blank" rel="noopener" class="link link-hover">lywsd02</a> Python client</p>
-    <p><a href="https://github.com/dearmash" target="_blank" rel="noopener" class="link link-hover">Harold De Armas</a> &middot; <a href="https://www.linkedin.com/in/mitjapugelj" target="_blank" rel="noopener" class="link link-hover">Mitja Pugelj</a></p>
-  </footer>
-
 <script>
-const TIME_SERVICE = 'ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6';
-const TIME_CHAR    = 'ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6';
-const UNIT_CHAR    = 'ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6';
+var TIME_SERVICE = 'ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6';
+var TIME_CHAR    = 'ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6';
+var UNIT_CHAR    = 'ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6';
 
-var statusEl   = document.getElementById('status');
-var statusWrap = document.getElementById('status-wrap');
-var tzLabel    = document.getElementById('tz-label');
-var clockEl    = document.getElementById('clock');
-var btnTime    = document.getElementById('btn-time');
-var btnUnit    = document.getElementById('btn-unit');
-var unitToggle = document.getElementById('unit-toggle');
-var labelC     = document.getElementById('label-c');
-var labelF     = document.getElementById('label-f');
+var hrsEl = document.getElementById('hrs');
+var minEl = document.getElementById('min');
+var secEl = document.getElementById('sec');
+var tzLabel = document.getElementById('tz-label');
+var btnTime = document.getElementById('btn-time');
+var statusAlert = document.getElementById('status-alert');
+var statusText = document.getElementById('status-text');
 
-/* Show warning if Web Bluetooth is unavailable */
 if (!('bluetooth' in navigator)) {
   document.getElementById('ble-warning').classList.remove('hidden');
   btnTime.disabled = true;
-  btnUnit.disabled = true;
 }
 
-/* Toggle label emphasis when the unit switch changes */
-unitToggle.addEventListener('change', function () {
-  labelC.classList.toggle('opacity-40', unitToggle.checked);
-  labelF.classList.toggle('opacity-40', !unitToggle.checked);
-});
-
-/* Timezone offset in whole hours from the system clock */
 function getTimezoneOffsetHours() {
   return -(new Date().getTimezoneOffset() / 60);
 }
 
-/* Display detected timezone */
-function updateTimezoneDisplay() {
-  var h = getTimezoneOffsetHours();
-  var sign = h >= 0 ? '+' : '';
-  var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  tzLabel.textContent = tz + ' (UTC' + sign + h + ')';
-}
+/* Show timezone in the badge */
+var h = getTimezoneOffsetHours();
+var sign = h >= 0 ? '+' : '';
+tzLabel.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + ' UTC' + sign + h;
 
-/* Live clock with blinking colon */
+/* Tick the DaisyUI countdown spans */
 function updateClock() {
   var now = new Date();
-  var hrs = String(now.getHours()).padStart(2, '0');
-  var min = String(now.getMinutes()).padStart(2, '0');
-  var sec = String(now.getSeconds()).padStart(2, '0');
-  clockEl.innerHTML = hrs + '<span class="colon-blink">:</span>' + min + '<span class="opacity-40 text-2xl">:</span>' + sec;
+  hrsEl.style.setProperty('--value', now.getHours());
+  minEl.style.setProperty('--value', now.getMinutes());
+  secEl.style.setProperty('--value', now.getSeconds());
 }
-
-updateTimezoneDisplay();
 updateClock();
 setInterval(updateClock, 1000);
 
-/* Status message with coloured background feedback */
+/* Show a DaisyUI alert for status feedback */
 function setStatus(message, type) {
-  statusEl.textContent = message;
-  statusWrap.className = 'rounded-lg px-3 py-2 text-center transition-colors duration-200';
-  statusEl.className = 'text-xs';
-
-  if (type === 'success') {
-    statusWrap.classList.add('bg-success/10');
-    statusEl.classList.add('text-success');
-  } else if (type === 'error') {
-    statusWrap.classList.add('bg-error/10');
-    statusEl.classList.add('text-error');
-  } else if (type === 'info') {
-    statusWrap.classList.add('bg-info/10');
-    statusEl.classList.add('text-info');
-  } else {
-    statusWrap.classList.add('bg-base-300');
-    statusEl.classList.add('opacity-50');
-  }
+  statusAlert.className = 'alert w-full';
+  if (type === 'success') statusAlert.classList.add('alert-success');
+  else if (type === 'error') statusAlert.classList.add('alert-error');
+  else statusAlert.classList.add('alert-info');
+  statusText.textContent = message;
+  statusAlert.classList.remove('hidden');
 }
 
-/* Connect to device and return the requested characteristic */
 function getCharacteristic(charUuid) {
   return navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
@@ -189,12 +107,10 @@ function getCharacteristic(charUuid) {
     return server.getPrimaryService(TIME_SERVICE);
   })
   .then(function (service) {
-    setStatus('Getting characteristic\u2026', 'info');
     return service.getCharacteristic(charUuid);
   });
 }
 
-/* Build the 5-byte time payload */
 function buildTimePayload() {
   var timestamp = Math.floor(Date.now() / 1000);
   var offset = getTimezoneOffsetHours();
@@ -205,7 +121,6 @@ function buildTimePayload() {
   return buffer;
 }
 
-/* Sync time */
 btnTime.addEventListener('click', function () {
   getCharacteristic(TIME_CHAR)
     .then(function (characteristic) {
@@ -213,27 +128,7 @@ btnTime.addEventListener('click', function () {
       return characteristic.writeValue(buildTimePayload());
     })
     .then(function () {
-      setStatus('Time synced successfully', 'success');
-    })
-    .catch(function (error) {
-      setStatus(String(error), 'error');
-    });
-});
-
-/* Set unit */
-btnUnit.addEventListener('click', function () {
-  var unitValue = unitToggle.checked ? 1 : 0;
-  var label = unitValue === 0 ? 'Celsius' : 'Fahrenheit';
-
-  getCharacteristic(UNIT_CHAR)
-    .then(function (characteristic) {
-      setStatus('Setting unit to ' + label + '\u2026', 'info');
-      var buffer = new ArrayBuffer(1);
-      new DataView(buffer).setUint8(0, unitValue);
-      return characteristic.writeValue(buffer);
-    })
-    .then(function () {
-      setStatus('Unit set to ' + label, 'success');
+      setStatus('Time synced', 'success');
     })
     .catch(function (error) {
       setStatus(String(error), 'error');
