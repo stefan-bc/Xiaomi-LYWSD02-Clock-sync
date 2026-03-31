@@ -46,57 +46,52 @@
       <span id="status-text"></span>
     </div>
 
-    <!-- Two-column log area -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-      <!-- Sync log -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body p-5 gap-3">
-          <h2 class="card-title text-sm">Sync log</h2>
-          <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet. Click "Add device" or "Sync all" to start.</div>
-          <div id="log-table-wrap" class="overflow-x-auto hidden">
-            <table class="table table-sm table-zebra w-full">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>ID</th>
-                  <th>Status</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody id="log-body"></tbody>
-            </table>
-          </div>
+    <!-- Sync log -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body p-5 gap-3">
+        <h2 class="card-title text-sm">Sync log</h2>
+        <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet. Click "Add device" or "Sync all" to start.</div>
+        <div id="log-table-wrap" class="overflow-y-auto max-h-64 hidden">
+          <table class="table table-sm table-zebra w-full">
+            <thead class="sticky top-0 bg-base-100 z-10">
+              <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+          </table>
         </div>
       </div>
+    </div>
 
-      <!-- Readings -->
-      <div class="card bg-base-100 shadow-xl">
-        <div class="card-body p-5 gap-3">
-          <h2 class="card-title text-sm">Readings</h2>
-          <div id="readings-empty" class="text-sm opacity-40 py-4 text-center">Sensor data will appear here after syncing.</div>
-          <div id="readings-table-wrap" class="overflow-x-auto hidden">
-            <table class="table table-sm table-zebra w-full">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>ID</th>
-                  <th>Temp</th>
-                  <th>Humidity</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody id="readings-body"></tbody>
-            </table>
-          </div>
+    <!-- Readings -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body p-5 gap-3">
+        <h2 class="card-title text-sm">Readings</h2>
+        <div id="readings-empty" class="text-sm opacity-40 py-4 text-center">Sensor data will appear here after syncing.</div>
+        <div id="readings-table-wrap" class="overflow-y-auto max-h-64 hidden">
+          <table class="table table-sm table-zebra w-full">
+            <thead class="sticky top-0 bg-base-100 z-10">
+              <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Temp</th>
+                <th>Humidity</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="readings-body"></tbody>
+          </table>
         </div>
       </div>
-
     </div>
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31T11:35 IST
+      Last updated: 2026-03-31T11:38 IST
     </footer>
 
   </div>
