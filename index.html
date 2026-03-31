@@ -18,10 +18,9 @@
     <span>Web Bluetooth requires a Chromium-based browser.</span>
   </div>
 
-  <!-- Dashboard container -->
   <div class="max-w-5xl mx-auto p-4 flex flex-col gap-4">
 
-    <!-- Top bar: title + clock + actions -->
+    <!-- Top bar -->
     <div class="navbar bg-base-100 rounded-box shadow-xl px-6">
       <div class="navbar-start">
         <h1 class="text-lg font-bold">LYWSD02 Clock Sync</h1>
@@ -46,11 +45,33 @@
       <span id="status-text"></span>
     </div>
 
+    <!-- Known devices -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body p-5 gap-3">
+        <h2 class="card-title text-sm">Known devices</h2>
+        <div id="devices-empty" class="text-sm opacity-40 py-4 text-center">No devices remembered yet. Click "Add device" to pair one.</div>
+        <div id="devices-table-wrap" class="overflow-y-auto max-h-48 hidden">
+          <table class="table table-sm table-zebra w-full">
+            <thead class="sticky top-0 bg-base-100 z-10">
+              <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Last synced</th>
+                <th>Last temp</th>
+                <th>Last humidity</th>
+              </tr>
+            </thead>
+            <tbody id="devices-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Sync log -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body p-5 gap-3">
         <h2 class="card-title text-sm">Sync log</h2>
-        <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet. Click "Add device" or "Sync all" to start.</div>
+        <div id="log-empty" class="text-sm opacity-40 py-4 text-center">No syncs yet.</div>
         <div id="log-table-wrap" class="overflow-y-auto max-h-64 hidden">
           <table class="table table-sm table-zebra w-full">
             <thead class="sticky top-0 bg-base-100 z-10">
@@ -67,31 +88,9 @@
       </div>
     </div>
 
-    <!-- Readings -->
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body p-5 gap-3">
-        <h2 class="card-title text-sm">Readings</h2>
-        <div id="readings-empty" class="text-sm opacity-40 py-4 text-center">Sensor data will appear here after syncing.</div>
-        <div id="readings-table-wrap" class="overflow-y-auto max-h-64 hidden">
-          <table class="table table-sm table-zebra w-full">
-            <thead class="sticky top-0 bg-base-100 z-10">
-              <tr>
-                <th>Name</th>
-                <th>ID</th>
-                <th>Temp</th>
-                <th>Humidity</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody id="readings-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31T11:38 IST
+      Last updated: 2026-03-31T11:42 IST
     </footer>
 
   </div>
@@ -109,12 +108,12 @@ var btnSyncAll = document.getElementById('btn-sync-all');
 var btnAdd = document.getElementById('btn-add');
 var statusAlert = document.getElementById('status-alert');
 var statusText = document.getElementById('status-text');
+var devicesBody = document.getElementById('devices-body');
+var devicesEmpty = document.getElementById('devices-empty');
+var devicesTableWrap = document.getElementById('devices-table-wrap');
 var logBody = document.getElementById('log-body');
 var logEmpty = document.getElementById('log-empty');
 var logTableWrap = document.getElementById('log-table-wrap');
-var readingsBody = document.getElementById('readings-body');
-var readingsEmpty = document.getElementById('readings-empty');
-var readingsTableWrap = document.getElementById('readings-table-wrap');
 
 if (!('bluetooth' in navigator)) {
   document.getElementById('ble-warning').classList.remove('hidden');
@@ -162,26 +161,104 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
+/* ---- Known devices registry (localStorage) ---- */
+
+function getDevicesRegistry() {
+  return JSON.parse(localStorage.getItem('lywsd02_devices') || '{}');
+}
+
+function saveDevicesRegistry(registry) {
+  localStorage.setItem('lywsd02_devices', JSON.stringify(registry));
+}
+
+/* Update a device entry in the registry (keyed by ID) */
+function updateDeviceRegistry(name, id, extra) {
+  var registry = getDevicesRegistry();
+  if (!registry[id]) {
+    registry[id] = { name: name, id: id, lastSynced: null, lastTemp: null, lastHumidity: null };
+  }
+  if (name) registry[id].name = name;
+  if (extra) {
+    if (extra.synced) registry[id].lastSynced = extra.synced;
+    if (extra.temp !== undefined) registry[id].lastTemp = extra.temp;
+    if (extra.humidity !== undefined) registry[id].lastHumidity = extra.humidity;
+  }
+  saveDevicesRegistry(registry);
+  renderDevicesTable();
+}
+
+/* Render the known devices table from registry */
+function renderDevicesTable() {
+  var registry = getDevicesRegistry();
+  var keys = Object.keys(registry);
+  if (keys.length === 0) {
+    devicesEmpty.classList.remove('hidden');
+    devicesTableWrap.classList.add('hidden');
+    return;
+  }
+  devicesEmpty.classList.add('hidden');
+  devicesTableWrap.classList.remove('hidden');
+  devicesBody.innerHTML = '';
+
+  for (var i = 0; i < keys.length; i++) {
+    var dev = registry[keys[i]];
+    var tr = document.createElement('tr');
+
+    var tdName = document.createElement('td');
+    tdName.textContent = dev.name || '-';
+
+    var tdId = document.createElement('td');
+    tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem]';
+    tdId.textContent = dev.id || '-';
+
+    var tdSynced = document.createElement('td');
+    tdSynced.className = 'font-mono text-sm whitespace-nowrap';
+    tdSynced.textContent = dev.lastSynced ? formatTime(new Date(dev.lastSynced)) : '-';
+
+    var tdTemp = document.createElement('td');
+    tdTemp.className = 'font-mono';
+    tdTemp.textContent = dev.lastTemp !== null ? dev.lastTemp.toFixed(1) + ' °C' : '-';
+
+    var tdHum = document.createElement('td');
+    tdHum.className = 'font-mono';
+    tdHum.textContent = dev.lastHumidity !== null ? dev.lastHumidity + ' %' : '-';
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdId);
+    tr.appendChild(tdSynced);
+    tr.appendChild(tdTemp);
+    tr.appendChild(tdHum);
+    devicesBody.appendChild(tr);
+  }
+}
+
+/* ---- Sync log (localStorage) ---- */
+
+function getHistory() {
+  return JSON.parse(localStorage.getItem('lywsd02_history') || '[]');
+}
+
+function saveToHistory(entry) {
+  var history = getHistory();
+  history.push(entry);
+  localStorage.setItem('lywsd02_history', JSON.stringify(history));
+}
+
 function showLogTable() {
   logEmpty.classList.add('hidden');
   logTableWrap.classList.remove('hidden');
 }
 
-function showReadingsTable() {
-  readingsEmpty.classList.add('hidden');
-  readingsTableWrap.classList.remove('hidden');
-}
-
-function logSync(deviceName, deviceId, status) {
+function addLogRow(name, id, status, time) {
   showLogTable();
   var tr = document.createElement('tr');
 
   var tdName = document.createElement('td');
-  tdName.textContent = deviceName || '-';
+  tdName.textContent = name || '-';
 
   var tdId = document.createElement('td');
-  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[12rem]';
-  tdId.textContent = deviceId || '-';
+  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[14rem]';
+  tdId.textContent = id || '-';
 
   var tdStatus = document.createElement('td');
   if (status === 'error') {
@@ -193,51 +270,33 @@ function logSync(deviceName, deviceId, status) {
 
   var tdTime = document.createElement('td');
   tdTime.className = 'font-mono text-sm whitespace-nowrap';
-  tdTime.textContent = formatTime(new Date());
+  tdTime.textContent = typeof time === 'string' ? formatTime(new Date(time)) : formatTime(time);
 
   tr.appendChild(tdName);
   tr.appendChild(tdId);
   tr.appendChild(tdStatus);
   tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
-
-  saveToHistory({ name: deviceName, id: deviceId, action: status || 'synced', time: new Date().toISOString() });
 }
 
-function logReading(deviceName, deviceId, tempC, humidity) {
-  showReadingsTable();
-  var tr = document.createElement('tr');
-
-  var tdName = document.createElement('td');
-  tdName.textContent = deviceName || '-';
-
-  var tdId = document.createElement('td');
-  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[12rem]';
-  tdId.textContent = deviceId || '-';
-
-  var tdTemp = document.createElement('td');
-  tdTemp.className = 'font-mono';
-  tdTemp.textContent = tempC.toFixed(1) + ' °C';
-
-  var tdHum = document.createElement('td');
-  tdHum.className = 'font-mono';
-  tdHum.textContent = humidity + ' %';
-
-  var tdTime = document.createElement('td');
-  tdTime.className = 'font-mono text-sm whitespace-nowrap';
-  tdTime.textContent = formatTime(new Date());
-
-  tr.appendChild(tdName);
-  tr.appendChild(tdId);
-  tr.appendChild(tdTemp);
-  tr.appendChild(tdHum);
-  tr.appendChild(tdTime);
-  readingsBody.insertBefore(tr, readingsBody.firstChild);
-
-  saveToHistory({ name: deviceName, id: deviceId, temp: tempC, humidity: humidity, time: new Date().toISOString() });
+function logSync(name, id, status) {
+  var now = new Date();
+  addLogRow(name, id, status, now);
+  saveToHistory({ name: name, id: id, action: status || 'synced', time: now.toISOString() });
+  if (id && status !== 'error') {
+    updateDeviceRegistry(name, id, { synced: now.toISOString() });
+  }
 }
 
-function readTempHumidity(service, deviceName, deviceId) {
+function logReading(name, id, tempC, humidity) {
+  if (id) {
+    updateDeviceRegistry(name, id, { temp: tempC, humidity: humidity });
+  }
+}
+
+/* ---- BLE operations ---- */
+
+function readTempHumidity(service, name, id) {
   return service.getCharacteristic(TEMP_HUM_CHAR)
     .then(function (char) {
       return new Promise(function (resolve) {
@@ -247,7 +306,7 @@ function readTempHumidity(service, deviceName, deviceId) {
           var tempRaw = data.getInt16(0, true);
           var tempC = tempRaw / 100;
           var humidity = data.getUint8(2);
-          logReading(deviceName, deviceId, tempC, humidity);
+          logReading(name, id, tempC, humidity);
           char.stopNotifications().then(resolve).catch(resolve);
         });
         char.startNotifications();
@@ -292,80 +351,22 @@ function syncDevice(device) {
     });
 }
 
-function saveToHistory(entry) {
-  var history = JSON.parse(localStorage.getItem('lywsd02_history') || '[]');
-  history.push(entry);
-  localStorage.setItem('lywsd02_history', JSON.stringify(history));
-}
+/* ---- Load history + devices on page load ---- */
 
-/* Restore previous logs from localStorage on page load */
 function loadHistory() {
-  var history = JSON.parse(localStorage.getItem('lywsd02_history') || '[]');
-  if (history.length === 0) return;
-
+  var history = getHistory();
   for (var i = 0; i < history.length; i++) {
     var entry = history[i];
-    if (entry.temp !== undefined) {
-      showReadingsTable();
-      var tr = document.createElement('tr');
-
-      var tdName = document.createElement('td');
-      tdName.textContent = entry.name || '-';
-
-      var tdId = document.createElement('td');
-      tdId.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[12rem]';
-      tdId.textContent = entry.id || '-';
-
-      var tdTemp = document.createElement('td');
-      tdTemp.className = 'font-mono';
-      tdTemp.textContent = entry.temp.toFixed(1) + ' °C';
-
-      var tdHum = document.createElement('td');
-      tdHum.className = 'font-mono';
-      tdHum.textContent = entry.humidity + ' %';
-
-      var tdTime = document.createElement('td');
-      tdTime.className = 'font-mono text-sm whitespace-nowrap';
-      tdTime.textContent = formatTime(new Date(entry.time));
-
-      tr.appendChild(tdName);
-      tr.appendChild(tdId);
-      tr.appendChild(tdTemp);
-      tr.appendChild(tdHum);
-      tr.appendChild(tdTime);
-      readingsBody.insertBefore(tr, readingsBody.firstChild);
-    } else {
-      showLogTable();
-      var tr2 = document.createElement('tr');
-
-      var tdName2 = document.createElement('td');
-      tdName2.textContent = entry.name || '-';
-
-      var tdId2 = document.createElement('td');
-      tdId2.className = 'font-mono text-xs select-all cursor-pointer break-all max-w-[12rem]';
-      tdId2.textContent = entry.id || '-';
-
-      var tdStatus = document.createElement('td');
-      if (entry.action === 'error') {
-        tr2.className = 'opacity-50';
-        tdStatus.innerHTML = '<span class="badge badge-error badge-sm">failed</span>';
-      } else {
-        tdStatus.innerHTML = '<span class="badge badge-success badge-sm">synced</span>';
-      }
-
-      var tdTime2 = document.createElement('td');
-      tdTime2.className = 'font-mono text-sm whitespace-nowrap';
-      tdTime2.textContent = formatTime(new Date(entry.time));
-
-      tr2.appendChild(tdName2);
-      tr2.appendChild(tdId2);
-      tr2.appendChild(tdStatus);
-      tr2.appendChild(tdTime2);
-      logBody.insertBefore(tr2, logBody.firstChild);
+    if (entry.action !== undefined) {
+      addLogRow(entry.name, entry.id, entry.action, entry.time);
     }
   }
 }
+
+renderDevicesTable();
 loadHistory();
+
+/* ---- Button handlers ---- */
 
 btnAdd.addEventListener('click', function () {
   navigator.bluetooth.requestDevice({
@@ -373,6 +374,8 @@ btnAdd.addEventListener('click', function () {
     optionalServices: [TIME_SERVICE]
   })
   .then(function (device) {
+    /* Register device immediately on pairing */
+    updateDeviceRegistry(device.name || '', device.id || '', {});
     setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
     return syncDevice(device);
   })
@@ -386,7 +389,7 @@ btnAdd.addEventListener('click', function () {
 
 btnSyncAll.addEventListener('click', function () {
   if (!navigator.bluetooth.getDevices) {
-    setStatus('getDevices() not supported — use Add instead', 'error');
+    setStatus('getDevices() not supported — enable chrome://flags/#enable-web-bluetooth-new-permissions-backend', 'error');
     return;
   }
 
