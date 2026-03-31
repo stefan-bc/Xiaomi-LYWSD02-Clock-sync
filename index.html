@@ -50,31 +50,50 @@
       </div>
     </div>
 
-    <!-- Known devices -->
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body p-5 gap-3">
-        <div class="flex items-center gap-2">
-          <h2 class="card-title text-sm">Known devices</h2>
-          <div id="device-count" class="badge badge-accent badge-sm hidden"></div>
-        </div>
-        <div id="devices-loading" class="flex flex-col gap-2 py-2">
-          <div class="skeleton h-4 w-full"></div>
-          <div class="skeleton h-4 w-3/4"></div>
-          <div class="skeleton h-4 w-5/6"></div>
-        </div>
-        <div id="devices-empty" class="text-sm opacity-40 py-4 text-center hidden">No devices remembered yet. Click "Add device" to pair one.</div>
-        <div id="devices-table-wrap" class="overflow-x-auto hidden">
-          <table class="table table-sm w-full">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Location</th>
-              </tr>
-            </thead>
-            <tbody id="devices-body"></tbody>
-          </table>
+    <!-- Known devices + CLI tool side by side -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <!-- Known devices -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-5 gap-3">
+          <div class="flex items-center gap-2">
+            <h2 class="card-title text-sm">Known devices</h2>
+            <div id="device-count" class="badge badge-accent badge-sm hidden"></div>
+          </div>
+          <div id="devices-loading" class="flex flex-col gap-2 py-2">
+            <div class="skeleton h-4 w-full"></div>
+            <div class="skeleton h-4 w-3/4"></div>
+          </div>
+          <div id="devices-empty" class="text-sm opacity-40 py-4 text-center hidden">No devices yet.</div>
+          <div id="devices-table-wrap" class="hidden">
+            <table class="table table-sm w-full">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Location</th>
+                </tr>
+              </thead>
+              <tbody id="devices-body"></tbody>
+            </table>
+          </div>
         </div>
       </div>
+
+      <!-- CLI tool -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-5 gap-3">
+          <h2 class="card-title text-sm">CLI tool</h2>
+          <p class="text-sm opacity-60">Sync all clocks from terminal. Auto-discovers devices in range, syncs time, reads temperature and humidity.</p>
+          <div class="mockup-code text-xs">
+            <pre data-prefix="$"><code>pip3 install bleak</code></pre>
+            <pre data-prefix="$"><code>python3 sync.py</code></pre>
+            <pre data-prefix=" " class="text-success"><code>Found 6 clock(s). Syncing...</code></pre>
+            <pre data-prefix="$"><code>python3 sync.py --scan</code></pre>
+          </div>
+          <a href="sync.py" download class="btn btn-secondary btn-sm btn-block">Download sync.py</a>
+        </div>
+      </div>
+
     </div>
 
     <!-- Sync log -->
@@ -100,20 +119,9 @@
       </div>
     </div>
 
-    <!-- CLI download -->
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body p-4 flex-row items-center justify-between">
-        <div>
-          <h3 class="font-semibold text-sm">CLI tool</h3>
-          <p class="text-xs opacity-50">Auto-discover and sync all clocks from terminal. Requires <code class="text-accent">pip3 install bleak</code></p>
-        </div>
-        <a href="sync.py" download class="btn btn-secondary btn-sm">Download sync.py</a>
-      </div>
-    </div>
-
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 13:38 IST
+      Last updated: 2026-03-31 13:39 IST
     </footer>
 
   </div>
