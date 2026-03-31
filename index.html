@@ -35,8 +35,11 @@
         </div>
       </div>
       <div class="navbar-end gap-2">
-        <button id="btn-sync-all" class="btn btn-primary btn-sm">Sync all</button>
-        <button id="btn-add" class="btn btn-outline btn-sm">Add device</button>
+        <button id="btn-sync-all" class="btn btn-primary btn-sm">
+          <span id="sync-all-label">Sync all</span>
+          <span id="sync-all-spinner" class="loading loading-spinner loading-md hidden"></span>
+        </button>
+        <button id="btn-add" class="btn btn-ghost btn-sm">Add device</button>
       </div>
     </div>
 
@@ -49,7 +52,13 @@
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body p-5 gap-3">
         <h2 class="card-title text-sm">Known devices</h2>
-        <div id="devices-empty" class="text-sm opacity-40 py-4 text-center">No devices remembered yet. Click "Add device" to pair one.</div>
+        <!-- Loading skeleton shown while fetching devices.json -->
+        <div id="devices-loading" class="flex flex-col gap-2 py-2">
+          <div class="skeleton h-4 w-full"></div>
+          <div class="skeleton h-4 w-3/4"></div>
+          <div class="skeleton h-4 w-5/6"></div>
+        </div>
+        <div id="devices-empty" class="text-sm opacity-40 py-4 text-center hidden">No devices remembered yet. Click "Add device" to pair one.</div>
         <div id="devices-table-wrap" class="overflow-y-auto max-h-48 hidden">
           <table class="table table-sm table-zebra w-full">
             <thead class="sticky top-0 bg-base-100 z-10">
@@ -91,7 +100,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 11:50 IST
+      Last updated: 2026-03-31 12:00 IST
     </footer>
 
   </div>
@@ -106,11 +115,14 @@ var hrsEl = document.getElementById('hrs');
 var minEl = document.getElementById('min');
 var tzLabel = document.getElementById('tz-label');
 var btnSyncAll = document.getElementById('btn-sync-all');
+var syncAllLabel = document.getElementById('sync-all-label');
+var syncAllSpinner = document.getElementById('sync-all-spinner');
 var btnAdd = document.getElementById('btn-add');
 var statusAlert = document.getElementById('status-alert');
 var statusText = document.getElementById('status-text');
 var devicesBody = document.getElementById('devices-body');
 var devicesEmpty = document.getElementById('devices-empty');
+var devicesLoading = document.getElementById('devices-loading');
 var devicesTableWrap = document.getElementById('devices-table-wrap');
 var logBody = document.getElementById('log-body');
 var logEmpty = document.getElementById('log-empty');
@@ -162,11 +174,17 @@ function setStatus(message, type) {
   statusAlert.classList.remove('hidden');
 }
 
+/* Show/hide sync button loading state */
+function setSyncing(active) {
+  btnSyncAll.disabled = active;
+  syncAllLabel.classList.toggle('hidden', active);
+  syncAllSpinner.classList.toggle('hidden', !active);
+}
+
 /* ---- Known devices (loaded from devices.json, runtime state in memory) ---- */
 
 var devicesRegistry = {};
 
-/* Fetch devices.json from the repo and merge with any runtime state */
 function loadDevicesJson() {
   return fetch('devices.json')
     .then(function (res) { return res.json(); })
@@ -186,12 +204,15 @@ function loadDevicesJson() {
           };
         }
       }
+      devicesLoading.classList.add('hidden');
       renderDevicesTable();
     })
-    .catch(function () {});
+    .catch(function () {
+      devicesLoading.classList.add('hidden');
+      devicesEmpty.classList.remove('hidden');
+    });
 }
 
-/* Update runtime state after a sync or reading */
 function updateDeviceRegistry(name, id, extra) {
   var key = id || name;
   if (!devicesRegistry[key]) {
@@ -206,7 +227,6 @@ function updateDeviceRegistry(name, id, extra) {
   renderDevicesTable();
 }
 
-/* Render the known devices table */
 function renderDevicesTable() {
   var keys = Object.keys(devicesRegistry);
   if (keys.length === 0) {
@@ -373,7 +393,7 @@ function syncDevice(device) {
     });
 }
 
-/* ---- Load history + devices on page load ---- */
+/* ---- Load on page start ---- */
 
 function loadHistory() {
   var history = getHistory();
@@ -396,7 +416,6 @@ btnAdd.addEventListener('click', function () {
     optionalServices: [TIME_SERVICE]
   })
   .then(function (device) {
-    /* Register device immediately on pairing */
     updateDeviceRegistry(device.name || '', device.id || '', {});
     setStatus('Syncing ' + (device.name || device.id) + '\u2026', 'info');
     return syncDevice(device);
@@ -416,42 +435,47 @@ btnSyncAll.addEventListener('click', function () {
   }
 
   setStatus('Scanning for paired devices\u2026', 'info');
-  btnSyncAll.disabled = true;
-  btnSyncAll.classList.add('loading');
+  setSyncing(true);
 
   navigator.bluetooth.getDevices()
     .then(function (devices) {
       if (devices.length === 0) {
         setStatus('No paired devices — add one first', 'error');
-        btnSyncAll.disabled = false;
-        btnSyncAll.classList.remove('loading');
+        setSyncing(false);
         return;
       }
 
-      setStatus('Found ' + devices.length + ' device(s), connecting\u2026', 'info');
+      var total = devices.length;
+      var done = 0;
+      setStatus('Syncing 0/' + total + ' devices\u2026', 'info');
 
       var promises = devices.map(function (device) {
         return new Promise(function (resolve) {
           var resolved = false;
-          function done() {
-            if (!resolved) { resolved = true; resolve(); }
+          function finish() {
+            if (!resolved) {
+              resolved = true;
+              done++;
+              setStatus('Syncing ' + done + '/' + total + ' devices\u2026', 'info');
+              resolve();
+            }
           }
 
           var timer = setTimeout(function () {
             logSync(device.name || '', device.id || '', 'error');
-            done();
+            finish();
           }, 10000);
 
           device.addEventListener('advertisementreceived', function onAdv() {
             device.removeEventListener('advertisementreceived', onAdv);
             clearTimeout(timer);
-            syncDevice(device).then(done).catch(done);
+            syncDevice(device).then(finish).catch(finish);
           });
 
           device.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
             .catch(function () {
               clearTimeout(timer);
-              syncDevice(device).then(done).catch(done);
+              syncDevice(device).then(finish).catch(finish);
             });
         });
       });
@@ -460,13 +484,11 @@ btnSyncAll.addEventListener('click', function () {
     })
     .then(function () {
       setStatus('All done', 'success');
-      btnSyncAll.disabled = false;
-      btnSyncAll.classList.remove('loading');
+      setSyncing(false);
     })
     .catch(function (error) {
       setStatus(friendlyError(error), 'error');
-      btnSyncAll.disabled = false;
-      btnSyncAll.classList.remove('loading');
+      setSyncing(false);
     });
 });
 </script>
