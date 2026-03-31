@@ -8,28 +8,56 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen bg-base-300 flex items-center justify-center p-4">
+<body class="min-h-screen bg-base-300 flex flex-col items-center justify-center p-4 gap-4">
 
   <!-- Chromium-only warning -->
-  <div id="ble-warning" role="alert" class="alert alert-warning fixed top-4 left-4 right-4 max-w-sm mx-auto z-50 hidden">
+  <div id="ble-warning" role="alert" class="alert alert-warning max-w-md hidden">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
     <span>Web Bluetooth requires a Chromium-based browser.</span>
   </div>
 
-  <div class="flex flex-col sm:flex-row items-start justify-center gap-4 w-full max-w-3xl">
+  <!-- Main sync card -->
+  <div class="card bg-base-100 shadow-xl w-full max-w-sm">
+    <div class="card-body items-center text-center gap-5">
 
-    <!-- Sync log card (left) -->
-    <div id="log-card" class="card bg-base-100 shadow-xl w-full sm:w-72 hidden order-2 sm:order-1">
+      <h2 class="card-title">LYWSD02 Clock Sync</h2>
+
+      <div class="flex items-center justify-center gap-1 font-mono text-5xl tabular-nums">
+        <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
+        <span class="countdown"><span id="min" style="--value:0;"></span></span>:
+        <span class="countdown text-3xl opacity-40"><span id="sec" style="--value:0;"></span></span>
+      </div>
+
+      <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
+
+      <div class="card-actions w-full flex-col gap-2">
+        <button id="btn-sync-all" class="btn btn-primary btn-block">Sync all paired devices</button>
+        <button id="btn-add" class="btn btn-outline btn-sm btn-block">Add new device</button>
+      </div>
+
+      <div id="status-alert" role="alert" class="alert hidden w-full">
+        <span id="status-text"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Log cards row -->
+  <div class="flex flex-col lg:flex-row items-start justify-center gap-4 w-full max-w-4xl">
+
+    <!-- Sync log -->
+    <div id="log-card" class="card bg-base-100 shadow-xl w-full hidden">
       <div class="card-body p-5 gap-3">
         <h3 class="card-title text-sm">Sync log</h3>
         <div class="overflow-x-auto">
-          <table class="table table-xs">
+          <table class="table table-sm w-full">
             <thead>
               <tr>
-                <th>Device</th>
-                <th>Synced at</th>
+                <th class="w-1/3">Device</th>
+                <th>Status</th>
+                <th>Time</th>
               </tr>
             </thead>
             <tbody id="log-body"></tbody>
@@ -38,42 +66,12 @@
       </div>
     </div>
 
-    <!-- Main sync card (centre) -->
-    <div class="card bg-base-100 shadow-xl w-full max-w-xs order-1 sm:order-2">
-      <div class="card-body items-center text-center gap-5">
-
-        <h2 class="card-title">LYWSD02 Clock Sync</h2>
-
-        <!-- Live clock using DaisyUI countdown -->
-        <div class="flex items-center justify-center gap-1 font-mono text-5xl tabular-nums">
-          <span class="countdown"><span id="hrs" style="--value:0;"></span></span>:
-          <span class="countdown"><span id="min" style="--value:0;"></span></span>:
-          <span class="countdown text-3xl opacity-40"><span id="sec" style="--value:0;"></span></span>
-        </div>
-
-        <!-- Timezone badge -->
-        <div class="badge badge-neutral badge-sm font-mono" id="tz-label"></div>
-
-        <!-- Buttons -->
-        <div class="card-actions w-full flex-col gap-2">
-          <button id="btn-sync-all" class="btn btn-primary btn-block">Sync all paired devices</button>
-          <button id="btn-add" class="btn btn-outline btn-sm btn-block">Add new device</button>
-        </div>
-
-        <!-- Status alert -->
-        <div id="status-alert" role="alert" class="alert hidden w-full">
-          <span id="status-text"></span>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Readings card (right) -->
-    <div id="readings-card" class="card bg-base-100 shadow-xl w-full sm:w-72 hidden order-3">
+    <!-- Readings -->
+    <div id="readings-card" class="card bg-base-100 shadow-xl w-full hidden">
       <div class="card-body p-5 gap-3">
         <h3 class="card-title text-sm">Readings</h3>
         <div class="overflow-x-auto">
-          <table class="table table-xs">
+          <table class="table table-sm w-full">
             <thead>
               <tr>
                 <th>Device</th>
@@ -90,8 +88,8 @@
 
   </div>
 
-  <footer class="mt-6 text-center text-xs opacity-30 font-mono">
-    Last updated: 2026-03-31T11:15 IST
+  <footer class="text-center text-xs opacity-30 font-mono">
+    Last updated: 2026-03-31T11:18 IST
   </footer>
 
 <script>
@@ -136,6 +134,23 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
+/* Format a date as local ISO-ish: YYYY-MM-DD HH:MM:SS */
+function formatTime(d) {
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+
+/* Friendly error messages instead of raw DOMException strings */
+function friendlyError(error) {
+  var msg = String(error);
+  if (msg.indexOf('cancelled') !== -1 || msg.indexOf('canceled') !== -1) return 'Cancelled';
+  if (msg.indexOf('connect') !== -1) return 'Connection failed';
+  if (msg.indexOf('not found') !== -1) return 'Device not found';
+  if (msg.indexOf('denied') !== -1) return 'Permission denied';
+  return msg;
+}
+
 function setStatus(message, type) {
   statusAlert.className = 'alert w-full';
   if (type === 'success') statusAlert.classList.add('alert-success');
@@ -151,24 +166,24 @@ function logSync(deviceName, status) {
 
   var tdName = document.createElement('td');
   var code = document.createElement('code');
-  code.className = 'select-all cursor-pointer';
+  code.className = 'select-all cursor-pointer badge badge-ghost';
   code.textContent = deviceName || 'Unknown';
   tdName.appendChild(code);
 
-  var tdTime = document.createElement('td');
-  tdTime.className = 'font-mono text-xs opacity-70';
-  tdTime.textContent = new Date().toISOString();
-
-  /* Optional status badge for errors */
+  var tdStatus = document.createElement('td');
   if (status === 'error') {
-    tr.className = 'opacity-40';
-    var badge = document.createElement('span');
-    badge.className = 'badge badge-error badge-xs ml-1';
-    badge.textContent = 'fail';
-    tdName.appendChild(badge);
+    tr.className = 'opacity-50';
+    tdStatus.innerHTML = '<span class="badge badge-error badge-sm">failed</span>';
+  } else {
+    tdStatus.innerHTML = '<span class="badge badge-success badge-sm">synced</span>';
   }
 
+  var tdTime = document.createElement('td');
+  tdTime.className = 'font-mono text-sm';
+  tdTime.textContent = formatTime(new Date());
+
   tr.appendChild(tdName);
+  tr.appendChild(tdStatus);
   tr.appendChild(tdTime);
   logBody.insertBefore(tr, logBody.firstChild);
 }
@@ -179,7 +194,7 @@ function logReading(deviceName, tempC, humidity) {
 
   var tdName = document.createElement('td');
   var code = document.createElement('code');
-  code.className = 'select-all cursor-pointer';
+  code.className = 'select-all cursor-pointer badge badge-ghost';
   code.textContent = deviceName || 'Unknown';
   tdName.appendChild(code);
 
@@ -192,8 +207,8 @@ function logReading(deviceName, tempC, humidity) {
   tdHum.textContent = humidity + ' %';
 
   var tdTime = document.createElement('td');
-  tdTime.className = 'font-mono text-xs opacity-70';
-  tdTime.textContent = new Date().toISOString();
+  tdTime.className = 'font-mono text-sm';
+  tdTime.textContent = formatTime(new Date());
 
   tr.appendChild(tdName);
   tr.appendChild(tdTemp);
@@ -231,7 +246,6 @@ function buildTimePayload() {
   return buffer;
 }
 
-/* Sync a single already-connected device: write time, read sensor, disconnect */
 function syncDevice(device) {
   var name = device.name || device.id || 'Unknown';
   return device.gatt.connect()
@@ -251,14 +265,12 @@ function syncDevice(device) {
     .then(function () {
       if (device.gatt.connected) device.gatt.disconnect();
     })
-    .catch(function (err) {
+    .catch(function () {
       logSync(name, 'error');
       if (device.gatt.connected) device.gatt.disconnect();
     });
 }
 
-/* "Add new device" — opens the picker once to grant permission,
-   then immediately syncs it */
 btnAdd.addEventListener('click', function () {
   navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
@@ -272,16 +284,13 @@ btnAdd.addEventListener('click', function () {
     setStatus('Done', 'success');
   })
   .catch(function (error) {
-    setStatus(String(error), 'error');
+    setStatus(friendlyError(error), 'error');
   });
 });
 
-/* "Sync all" — uses getDevices() to reconnect to every previously
-   paired device without showing the picker. Watches for advertisements
-   to find devices that are in range, then syncs each one. */
 btnSyncAll.addEventListener('click', function () {
   if (!navigator.bluetooth.getDevices) {
-    setStatus('getDevices() not supported — use Add to sync one at a time', 'error');
+    setStatus('getDevices() not supported — use Add instead', 'error');
     return;
   }
 
@@ -292,16 +301,14 @@ btnSyncAll.addEventListener('click', function () {
   navigator.bluetooth.getDevices()
     .then(function (devices) {
       if (devices.length === 0) {
-        setStatus('No paired devices — use Add first', 'error');
+        setStatus('No paired devices — add one first', 'error');
         btnSyncAll.disabled = false;
         btnSyncAll.classList.remove('loading');
         return;
       }
 
-      setStatus('Found ' + devices.length + ' paired device(s), connecting\u2026', 'info');
+      setStatus('Found ' + devices.length + ' device(s), connecting\u2026', 'info');
 
-      /* Try to connect to each device. watchAdvertisements() detects
-         which ones are in range; we give each device a 10s window. */
       var promises = devices.map(function (device) {
         return new Promise(function (resolve) {
           var resolved = false;
@@ -309,13 +316,11 @@ btnSyncAll.addEventListener('click', function () {
             if (!resolved) { resolved = true; resolve(); }
           }
 
-          /* Timeout — skip device if not found within 10s */
           var timer = setTimeout(function () {
             logSync(device.name || device.id || 'Unknown', 'error');
             done();
           }, 10000);
 
-          /* When we see the device advertising, connect and sync */
           device.addEventListener('advertisementreceived', function onAdv() {
             device.removeEventListener('advertisementreceived', onAdv);
             clearTimeout(timer);
@@ -324,7 +329,6 @@ btnSyncAll.addEventListener('click', function () {
 
           device.watchAdvertisements({ signal: AbortSignal.timeout(10000) })
             .catch(function () {
-              /* watchAdvertisements not supported — try direct connect */
               clearTimeout(timer);
               syncDevice(device).then(done).catch(done);
             });
@@ -339,7 +343,7 @@ btnSyncAll.addEventListener('click', function () {
       btnSyncAll.classList.remove('loading');
     })
     .catch(function (error) {
-      setStatus(String(error), 'error');
+      setStatus(friendlyError(error), 'error');
       btnSyncAll.disabled = false;
       btnSyncAll.classList.remove('loading');
     });
