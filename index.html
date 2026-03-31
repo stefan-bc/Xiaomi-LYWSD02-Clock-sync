@@ -167,10 +167,8 @@ function logSync(deviceName, deviceId, status) {
   tdName.textContent = deviceName || '-';
 
   var tdId = document.createElement('td');
-  var code = document.createElement('code');
-  code.className = 'select-all cursor-pointer badge badge-ghost badge-sm text-xs';
-  code.textContent = deviceId || '-';
-  tdId.appendChild(code);
+  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all';
+  tdId.textContent = deviceId || '-';
 
   var tdStatus = document.createElement('td');
   if (status === 'error') {
@@ -181,7 +179,7 @@ function logSync(deviceName, deviceId, status) {
   }
 
   var tdTime = document.createElement('td');
-  tdTime.className = 'font-mono text-sm';
+  tdTime.className = 'font-mono text-sm whitespace-nowrap';
   tdTime.textContent = formatTime(new Date());
 
   tr.appendChild(tdName);
@@ -201,10 +199,8 @@ function logReading(deviceName, deviceId, tempC, humidity) {
   tdName.textContent = deviceName || '-';
 
   var tdId = document.createElement('td');
-  var code = document.createElement('code');
-  code.className = 'select-all cursor-pointer badge badge-ghost badge-sm text-xs';
-  code.textContent = deviceId || '-';
-  tdId.appendChild(code);
+  tdId.className = 'font-mono text-xs select-all cursor-pointer break-all';
+  tdId.textContent = deviceId || '-';
 
   var tdTemp = document.createElement('td');
   tdTemp.className = 'font-mono';
