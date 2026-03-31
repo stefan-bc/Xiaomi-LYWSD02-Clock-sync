@@ -107,7 +107,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-xs opacity-30 font-mono py-2">
-      Last updated: 2026-03-31 12:20 IST
+      Last updated: 2026-03-31 12:30 IST
     </footer>
 
   </div>
@@ -572,25 +572,65 @@ btnSyncAll.addEventListener('click', function () {
   setSyncing(true);
 
   navigator.bluetooth.getDevices()
-    .then(function (devices) {
-      if (devices.length === 0) {
-        setStatus('No paired devices \u2014 add one first', 'error');
+    .then(function (pairedDevices) {
+      /* Build a set of paired device IDs */
+      var pairedIds = {};
+      for (var i = 0; i < pairedDevices.length; i++) {
+        pairedIds[pairedDevices[i].id] = pairedDevices[i];
+      }
+
+      /* Find which devices from the registry are not yet paired */
+      var unpaired = [];
+      var keys = Object.keys(devicesRegistry);
+      for (var j = 0; j < keys.length; j++) {
+        var dev = devicesRegistry[keys[j]];
+        if (dev.id && !pairedIds[dev.id]) {
+          unpaired.push(dev);
+        }
+      }
+
+      var total = pairedDevices.length + unpaired.length;
+      var done = 0;
+
+      if (total === 0) {
+        setStatus('No devices \u2014 add one first', 'error');
         setSyncing(false);
         return;
       }
 
-      var total = devices.length;
-      var done = 0;
       setStatus('Syncing 0/' + total + '\u2026', 'info');
 
-      var promises = devices.map(function (device) {
+      /* Phase 1: sync all already-paired devices in parallel */
+      var pairedPromises = pairedDevices.map(function (device) {
         return waitAndSync(device).then(function () {
           done++;
           setStatus('Syncing ' + done + '/' + total + '\u2026', 'info');
         });
       });
 
-      return Promise.all(promises);
+      return Promise.all(pairedPromises).then(function () {
+        if (unpaired.length === 0) return;
+
+        /* Phase 2: prompt picker for each unpaired device, one at a time */
+        var chain = Promise.resolve();
+        unpaired.forEach(function (dev) {
+          chain = chain.then(function () {
+            setStatus('Pair "' + (dev.name || 'device') + '" \u2014 select it from the picker', 'info');
+            return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [TIME_SERVICE] })
+              .then(function (device) {
+                return syncDevice(device).then(function () {
+                  done++;
+                  setStatus('Syncing ' + done + '/' + total + '\u2026', 'info');
+                });
+              })
+              .catch(function () {
+                /* User cancelled picker, skip this device */
+                done++;
+              });
+          });
+        });
+        return chain;
+      });
     })
     .then(function () { setStatus('All done', 'success'); setSyncing(false); })
     .catch(function (error) { setStatus(friendlyError(error), 'error'); setSyncing(false); });
